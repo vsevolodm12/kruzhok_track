@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stankevich Academy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #050709;
+            min-height: 100vh;
+            color: #e8e8e8;
+        }
+
+        .glass {
+            background: linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%);
+            backdrop-filter: blur(20px) saturate(150%);
+            -webkit-backdrop-filter: blur(20px) saturate(150%);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: inset 0 0 20px rgba(255,255,255,0.03), 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .nav-glass {
+            background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
+            backdrop-filter: blur(40px) saturate(150%);
+            -webkit-backdrop-filter: blur(40px) saturate(150%);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.4);
+            position: relative;
+        }
+
+        .nav-indicator {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            height: calc(100% - 12px);
+            background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 2px 8px rgba(0,0,0,0.2);
+            border-radius: 22px;
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 0;
+        }
+
+        .nav-item {
+            position: relative;
+            z-index: 1;
+            transition: transform 0.15s ease;
+        }
+        .nav-item:active { transform: scale(0.9); }
+        .nav-item svg {
+            transition: opacity 0.2s ease;
+        }
+
+
+        .page { 
+            opacity: 0; 
+            transform: translateY(8px);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+        .page.visible { 
+            opacity: 1; 
+            transform: translateY(0);
+        }
+
+        ::-webkit-scrollbar { width: 0; }
+        
+        .chart-container { overflow: visible; }
+    </style>
+</head>
+<body>
+    <div id="app" class="flex flex-col items-center min-h-screen"></div>
+
+    <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+        <div class="nav-glass rounded-full px-1.5 py-1.5 flex">
+            <div class="nav-indicator" id="navIndicator"></div>
+            <button class="nav-item w-12 h-12 flex items-center justify-center" data-tab="history" data-index="0">
+                <svg class="w-6 h-6 opacity-30" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="9"/>
+                    <path d="M12 7v5l3 3"/>
+                </svg>
+            </button>
+            <button class="nav-item active w-12 h-12 flex items-center justify-center" data-tab="main" data-index="1">
+                <svg class="w-6 h-6 opacity-90" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path d="M3 12l9-9 9 9"/>
+                    <path d="M5 10v10a1 1 0 001 1h12a1 1 0 001-1V10"/>
+                </svg>
+            </button>
+            <button class="nav-item w-12 h-12 flex items-center justify-center" data-tab="stats" data-index="2">
+                <svg class="w-6 h-6 opacity-30" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path d="M4 20h16"/>
+                    <path d="M4 20V10"/>
+                    <path d="M9 20V6"/>
+                    <path d="M14 20v-8"/>
+                    <path d="M19 20V4"/>
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <script>
+        const data = {
+            student: { name: 'Роман Григорьев', email: 'roman.grigoriev@mail.ru' },
+            courses: [
+                { id: 1, name: 'История России' },
+                { id: 2, name: 'Обществознание' }
+            ],
+            grades: [
+                // История России - Эссе (5 шт)
+                { id: 1, name: 'Эссе: Реформы Александра II', type: 'essay', courseId: 1, score: 46, max: 50, comment: 'Отличная работа!', date: '3 фев', timestamp: 1770076800 },
+                { id: 2, name: 'Эссе: Причины революции 1917', type: 'essay', courseId: 1, score: 42, max: 50, comment: 'Хорошо, добавьте фактов.', date: '27 янв', timestamp: 1769472000 },
+                { id: 3, name: 'Эссе: Столыпинские реформы', type: 'essay', courseId: 1, score: 38, max: 50, comment: 'Работайте над структурой.', date: '20 янв', timestamp: 1768867200 },
+                { id: 23, name: 'Эссе: Крестьянский вопрос', type: 'essay', courseId: 1, score: 40, max: 50, comment: 'Нужно больше аргументов.', date: '13 янв', timestamp: 1768262400 },
+                { id: 24, name: 'Эссе: Внешняя политика России', type: 'essay', courseId: 1, score: 44, max: 50, comment: 'Хорошая работа!', date: '6 янв', timestamp: 1767657600 },
+                
+                // Проекты (3 шт) - 0-50, но без фиксированного максимума (может быть разный)
+                { id: 30, name: 'Проект: Первая мировая война', type: 'project', courseId: 1, score: 47, max: null, comment: 'Отлично!', date: '31 янв', timestamp: 1769817600 },
+                { id: 31, name: 'Проект: Индустриализация СССР', type: 'project', courseId: 1, score: 43, max: null, comment: 'Неплохо, но можно глубже.', date: '21 янв', timestamp: 1768953600 },
+                { id: 32, name: 'Проект: НЭП', type: 'project', courseId: 1, score: 45, max: null, comment: 'Хороший анализ!', date: '13 янв', timestamp: 1768262400 },
+                
+                // Пробники (3 шт)
+                { id: 4, name: 'Пробник №1', type: 'test', courseId: 1, score: 78, max: 100, comment: 'Хороший результат, повторите даты.', date: '15 янв', timestamp: 1768435200 },
+                { id: 5, name: 'Пробник №2', type: 'test', courseId: 1, score: 72, max: 100, comment: null, date: '25 янв', timestamp: 1769299200 },
+                { id: 6, name: 'Пробник №3', type: 'test', courseId: 1, score: 85, max: 100, comment: 'Отличный прогресс!', date: '3 фев', timestamp: 1770076800 },
+                
+                // ДЗ (10 шт) - переменный максимум
+                { id: 9, name: 'ДЗ: Анализ источника', type: 'practice', courseId: 1, score: 9, max: 10, comment: 'Отлично!', date: '4 фев', timestamp: 1770163200 },
+                { id: 10, name: 'ДЗ: Работа с картой', type: 'practice', courseId: 1, score: 8, max: 10, comment: null, date: '1 фев', timestamp: 1769904000 },
+                { id: 11, name: 'ДЗ: Хронология событий', type: 'practice', courseId: 1, score: 12, max: 15, comment: 'Супер!', date: '30 янв', timestamp: 1769731200 },
+                { id: 12, name: 'ДЗ: Термины и понятия', type: 'practice', courseId: 1, score: 7, max: 10, comment: 'Повторите определения.', date: '28 янв', timestamp: 1769558400 },
+                { id: 13, name: 'ДЗ: Культура XIX века', type: 'practice', courseId: 1, score: 6, max: 10, comment: 'Нужно доработать.', date: '25 янв', timestamp: 1769299200 },
+                { id: 14, name: 'ДЗ: Реформы Петра I', type: 'practice', courseId: 1, score: 9, max: 10, comment: null, date: '22 янв', timestamp: 1769040000 },
+                { id: 15, name: 'ДЗ: Смутное время', type: 'practice', courseId: 1, score: 8, max: 10, comment: 'Хорошо!', date: '18 янв', timestamp: 1768694400 },
+                { id: 16, name: 'ДЗ: Монгольское иго', type: 'practice', courseId: 1, score: 5, max: 10, comment: 'Перечитайте материал.', date: '15 янв', timestamp: 1768435200 },
+                { id: 17, name: 'ДЗ: Крещение Руси', type: 'practice', courseId: 1, score: 20, max: 25, comment: 'Отлично!', date: '12 янв', timestamp: 1768176000 },
+                { id: 18, name: 'ДЗ: Первые князья', type: 'practice', courseId: 1, score: 7, max: 10, comment: null, date: '8 янв', timestamp: 1767830400 },
+                
+                // На проверке
+                { id: 19, name: 'Эссе: НЭП и его итоги', type: 'essay', courseId: 1, score: null, max: 50, comment: null, date: null, timestamp: null },
+                
+                // Обществознание
+                { id: 20, name: 'Эссе: Социальные институты', type: 'essay', courseId: 2, score: 44, max: 50, comment: 'Хорошая аргументация.', date: '1 фев', timestamp: 1769904000 },
+                { id: 21, name: 'Пробник: Общество', type: 'test', courseId: 2, score: 85, max: 100, comment: null, date: '22 янв', timestamp: 1769040000 },
+                { id: 22, name: 'ДЗ: Право', type: 'practice', courseId: 2, score: 9, max: 10, comment: null, date: '14 янв', timestamp: 1768348800 },
+            ]
+        };
+
+        let currentTab = 'main';
+        let currentCourse = 1;
+        const app = document.getElementById('app');
+
+        const getCourseGrades = () => data.grades.filter(g => g.courseId === currentCourse && g.score !== null);
+        const byType = t => getCourseGrades().filter(g => g.type === t);
+        
+        const getAvg = (type) => {
+            const items = byType(type);
+            if (!items.length) return 0;
+            const sum = items.reduce((a, g) => a + g.score, 0);
+            return Math.round(sum / items.length);
+        };
+        
+        const getAvgPercent = (type) => {
+            const items = byType(type);
+            if (!items.length) return 0;
+            if (type === 'essay') return Math.round((getAvg(type) / 50) * 100);
+            if (type === 'project') return Math.round((getAvg(type) / 50) * 100);
+            if (type === 'test') return Math.round((getAvg(type) / 100) * 100);
+            // ДЗ - переменный max
+            const avg = items.reduce((a, g) => a + (g.score / g.max) * 100, 0) / items.length;
+            return Math.round(avg);
+        };
+
+        function render() {
+            const content = currentTab === 'main' ? renderMain() : currentTab === 'stats' ? renderStats() : renderHistory();
+            
+            const existing = app.querySelector('.page');
+            if (existing) {
+                existing.classList.remove('visible');
+                setTimeout(() => {
+                    app.innerHTML = content;
+                    requestAnimationFrame(() => app.querySelector('.page')?.classList.add('visible'));
+                }, 200);
+            } else {
+                app.innerHTML = content;
+                requestAnimationFrame(() => app.querySelector('.page')?.classList.add('visible'));
+            }
+        }
+
+        function renderMain() {
+            const accepted = getCourseGrades();
+            
+            // Средний балл (нормализованный к 100)
+            const calcAvgScore = () => {
+                if (!accepted.length) return 0;
+                let total = 0;
+                accepted.forEach(g => {
+                    if (g.type === 'project') total += (g.score / 50) * 100;
+                    else if (g.max) total += (g.score / g.max) * 100;
+                });
+                return Math.round(total / accepted.length);
+            };
+            const avgScore = calcAvgScore();
+
+            return `
+                <div class="page w-full max-w-md px-6 py-10 pb-32">
+                    <div class="mb-8">
+                        <h1 class="text-2xl font-semibold mb-1">${data.student.name}</h1>
+                        <p class="text-sm text-white/35">${data.student.email}</p>
+                    </div>
+
+                    <div class="relative mb-8">
+                        <button class="glass rounded-2xl py-3 px-5 w-full flex justify-between items-center" onclick="toggleDropdown()">
+                            <span class="text-sm">${data.courses.find(c => c.id === currentCourse).name}</span>
+                            <svg class="w-4 h-4 text-white/40 transition-transform" id="dropdownArrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/>
+                            </svg>
+                        </button>
+                        <div id="courseDropdown" class="absolute top-full left-0 right-0 mt-2 glass rounded-2xl overflow-hidden z-10 opacity-0 pointer-events-none translate-y-[-8px] transition-all duration-200">
+                            ${data.courses.map(c => `
+                                <button class="w-full py-3 px-5 text-left text-sm hover:bg-white/5 transition-colors ${c.id === currentCourse ? 'text-[#a8c7b5]' : 'text-white/60'}" onclick="selectCourse(${c.id})">
+                                    ${c.name}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="glass rounded-2xl p-6 mb-5">
+                        <div class="flex justify-between items-end mb-5">
+                            <div>
+                                <div class="text-white/40 text-xs mb-1">Средний балл</div>
+                                <div class="text-4xl font-semibold">${avgScore}<span class="text-lg text-white/25"> из 100</span></div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-white/40 text-xs mb-1">Работ сдано</div>
+                                <div class="text-2xl font-medium text-[#a8c7b5]">${accepted.length}</div>
+                            </div>
+                        </div>
+                        <div class="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full bg-gradient-to-r from-[#7c9a92] to-[#a8c7b5]" style="width: ${avgScore}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mb-6">
+                        <div class="glass rounded-2xl p-4">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-xs text-white/40">Эссе</span>
+                                <span class="text-lg font-semibold text-[#8fa7b3]">${getAvg('essay')}<span class="text-xs text-white/30">/50</span></span>
+                            </div>
+                            <div class="h-1.5 bg-white/5 rounded-full overflow-hidden mb-2">
+                                <div class="h-full rounded-full bg-[#8fa7b3]" style="width: ${getAvgPercent('essay')}%"></div>
+                            </div>
+                            <div class="text-[10px] text-white/25">${byType('essay').length} написано</div>
+                        </div>
+                        <div class="glass rounded-2xl p-4">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-xs text-white/40">Проекты</span>
+                                <span class="text-lg font-semibold text-[#b3a08f]">${getAvg('project')}<span class="text-xs text-white/30">/50</span></span>
+                            </div>
+                            <div class="h-1.5 bg-white/5 rounded-full overflow-hidden mb-2">
+                                <div class="h-full rounded-full bg-[#b3a08f]" style="width: ${getAvgPercent('project')}%"></div>
+                            </div>
+                            <div class="text-[10px] text-white/25">${byType('project').length} сдано</div>
+                        </div>
+                        <div class="glass rounded-2xl p-4">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-xs text-white/40">Пробники</span>
+                                <span class="text-lg font-semibold text-[#a093b3]">${getAvg('test')}<span class="text-xs text-white/30">/100</span></span>
+                            </div>
+                            <div class="h-1.5 bg-white/5 rounded-full overflow-hidden mb-2">
+                                <div class="h-full rounded-full bg-[#a093b3]" style="width: ${getAvgPercent('test')}%"></div>
+                            </div>
+                            <div class="text-[10px] text-white/25">${byType('test').length} пройдено</div>
+                        </div>
+                        <div class="glass rounded-2xl p-4">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-xs text-white/40">Домашка</span>
+                                <span class="text-lg font-semibold text-[#8fb3a0]">${getAvg('practice')}<span class="text-xs text-white/30"> балл</span></span>
+                            </div>
+                            <div class="h-1.5 bg-white/5 rounded-full overflow-hidden mb-2">
+                                <div class="h-full rounded-full bg-[#8fb3a0]" style="width: ${(getAvg('practice') / 15) * 100}%"></div>
+                            </div>
+                            <div class="text-[10px] text-white/25">${byType('practice').length} выполнено</div>
+                        </div>
+                    </div>
+
+                    <div class="glass rounded-2xl p-5">
+                        <div class="text-sm text-white/50 mb-4">Активность</div>
+                        <div id="calendar"></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderStats() {
+            const essays = byType('essay'), projects = byType('project'), tests = byType('test'), practices = byType('practice');
+            const avg = arr => arr.length ? Math.round(arr.reduce((a,b)=>a+b.score,0)/arr.length) : 0;
+            const course = data.courses.find(c => c.id === currentCourse);
+
+            return `
+                <div class="page w-full max-w-md px-6 py-10 pb-32">
+                    <div class="flex justify-between items-center mb-8">
+                        <h1 class="text-2xl font-semibold">Статистика</h1>
+                        <span class="text-sm text-white/30">${course.name}</span>
+                    </div>
+
+                    <div class="space-y-5">
+                        <!-- ДЗ - первым, линейный график -->
+                        <div class="glass rounded-2xl p-5">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm text-white/40">Домашние задания</span>
+                                <span class="text-lg font-medium text-[#8fb3a0]">${(practices.reduce((a,b)=>a+b.score,0)/practices.length || 0).toFixed(1)}</span>
+                            </div>
+                            <div class="text-[10px] text-white/20 mb-3">${practices.length} выполнено</div>
+                            <div class="h-[120px]"><canvas id="practiceChart"></canvas></div>
+                        </div>
+
+                        <!-- Пробники -->
+                        <div class="glass rounded-2xl p-5">
+                            <div class="text-sm text-white/40 mb-5">Пробники</div>
+                            <div class="flex justify-between relative" style="height: 120px;">
+                                <div class="absolute left-0 right-0 h-px bg-white/10" style="top: 50%;"></div>
+                                ${sortByDate(tests).map((t, i, arr) => {
+                                    const diff = i > 0 ? t.score - arr[i-1].score : null;
+                                    const isPositive = diff !== null && diff > 0;
+                                    const isNegative = diff !== null && diff < 0;
+                                    return `
+                                    <div class="relative flex-1 flex flex-col items-center cursor-pointer" onclick="showDetail(${t.id})">
+                                        <div class="text-2xl font-semibold mb-auto pt-2">${t.score}</div>
+                                        <div class="w-3 h-3 rounded-full bg-[#a093b3] absolute z-10" style="top: 50%; transform: translateY(-50%);"></div>
+                                        ${i < arr.length - 1 ? `
+                                            <div class="absolute h-px bg-[#a093b3]/40" style="top: 50%; left: 50%; width: 100%;"></div>
+                                        ` : ''}
+                                        ${diff !== null ? `
+                                            <div class="absolute flex items-center gap-0.5 px-1.5 py-0.5 rounded-full ${isPositive ? 'bg-[#8fb3a0]/20 text-[#8fb3a0]' : isNegative ? 'bg-[#c77a7a]/20 text-[#c77a7a]' : 'bg-white/10 text-white/40'}" style="top: calc(50% + 10px);">
+                                                <svg class="w-2 h-2" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                                    ${isPositive ? '<path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5"/>' : isNegative ? '<path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>' : '<path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14"/>'}
+                                                </svg>
+                                                <span class="text-[9px] font-medium">${Math.abs(diff)}</span>
+                                            </div>
+                                        ` : ''}
+                                        <div class="text-[10px] text-white/30 ${diff !== null ? 'mt-6' : 'mt-auto'} pb-1">${t.date}</div>
+                                    </div>
+                                `}).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Эссе и Проекты - компактные карточки -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="glass rounded-2xl p-4">
+                                <div class="text-xs text-white/40 mb-1">Эссе</div>
+                                <div class="text-2xl font-semibold text-[#8fa7b3] mb-1">${avg(essays)}<span class="text-sm text-white/25">/50</span></div>
+                                <div class="text-[10px] text-white/20 mb-3">${essays.length} написано</div>
+                                <div class="h-[120px]"><canvas id="essayChart"></canvas></div>
+                            </div>
+                            <div class="glass rounded-2xl p-4">
+                                <div class="text-xs text-white/40 mb-1">Проекты</div>
+                                <div class="text-2xl font-semibold text-[#b3a08f] mb-1">${avg(projects)}<span class="text-sm text-white/25">/50</span></div>
+                                <div class="text-[10px] text-white/20 mb-3">${projects.length} сдано</div>
+                                <div class="h-[120px]"><canvas id="projectChart"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderHistory() {
+            const courseGrades = data.grades.filter(g => g.courseId === currentCourse);
+            const course = data.courses.find(c => c.id === currentCourse);
+
+            return `
+                <div class="page w-full max-w-md px-6 py-10 pb-32">
+                    <div class="flex justify-between items-center mb-8">
+                        <h1 class="text-2xl font-semibold">История</h1>
+                        <span class="text-sm text-white/30">${course.name}</span>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        ${courseGrades.map(w => `
+                            <div class="glass rounded-xl p-4 cursor-pointer active:scale-[0.98] transition-transform" onclick="showDetail(${w.id})">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1 min-w-0 pr-4">
+                                        <div class="font-medium text-[15px] truncate">${w.name}</div>
+                                        <div class="text-xs text-white/30 mt-1">${w.date || 'На проверке'}</div>
+                                    </div>
+                                    <div class="text-lg font-medium ${w.score ? 'text-[#a8c7b5]' : 'text-white/20'}">${w.score ?? '—'}${w.type === 'project' ? `<span class="text-sm text-white/25">/50</span>` : w.max ? `<span class="text-sm text-white/25">/${w.max}</span>` : ''}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        /* СОХРАНЕННЫЙ HEATMAP (12 недель с оттенками)
+        function renderHeatmap() {
+            const heatmap = document.getElementById('heatmap');
+            if (!heatmap) return;
+            const allGrades = data.grades.filter(g => g.timestamp);
+            const activityMap = {};
+            allGrades.forEach(g => {
+                const date = new Date(g.timestamp * 1000);
+                const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+                activityMap[key] = (activityMap[key] || 0) + 1;
+            });
+            const today = new Date();
+            const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+            const currentDay = today.getDay();
+            const mondayOffset = currentDay === 0 ? 6 : currentDay - 1;
+            const endDate = new Date(today);
+            endDate.setDate(today.getDate() - mondayOffset + 6);
+            const weeks = 16;
+            const startDate = new Date(endDate);
+            startDate.setDate(endDate.getDate() - (weeks * 7) + 1);
+            const monthLabels = [];
+            let lastMonth = -1;
+            let gridHtml = '';
+            for (let w = 0; w < weeks; w++) {
+                let weekHtml = '';
+                for (let d = 0; d < 7; d++) {
+                    const date = new Date(startDate);
+                    date.setDate(startDate.getDate() + w * 7 + d);
+                    if (d === 0 && date.getMonth() !== lastMonth) {
+                        monthLabels.push({ week: w, month: months[date.getMonth()] });
+                        lastMonth = date.getMonth();
+                    }
+                    const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+                    const count = activityMap[key] || 0;
+                    const isFuture = date > today;
+                    let color = 'bg-white/[0.04]';
+                    if (!isFuture) {
+                        if (count === 1) color = 'bg-[#8fa7b3]/25';
+                        else if (count === 2) color = 'bg-[#8fa7b3]/45';
+                        else if (count === 3) color = 'bg-[#8fa7b3]/65';
+                        else if (count >= 4) color = 'bg-[#8fa7b3]';
+                    }
+                    weekHtml += `<div class="w-full aspect-square rounded-[3px] ${color}"></div>`;
+                }
+                gridHtml += `<div class="flex flex-col gap-[3px]">${weekHtml}</div>`;
+            }
+            let monthHtml = '<div class="flex mb-2 text-[10px] text-white/25">';
+            let prevWeek = 0;
+            monthLabels.forEach((m, i) => {
+                const gap = m.week - prevWeek;
+                if (i === 0 && m.week > 0) monthHtml += `<div style="flex: ${m.week}"></div>`;
+                else if (gap > 0 && i > 0) monthHtml += `<div style="flex: ${gap}"></div>`;
+                monthHtml += `<div style="flex: ${i === monthLabels.length - 1 ? weeks - m.week : 0}" class="shrink-0">${m.month}</div>`;
+                prevWeek = m.week;
+            });
+            monthHtml += '</div>';
+            heatmap.innerHTML = `${monthHtml}<div class="grid gap-[3px]" style="grid-template-columns: repeat(${weeks}, 1fr);">${gridHtml}</div>`;
+        }
+        */
+
+        function renderCalendar() {
+            const calendar = document.getElementById('calendar');
+            if (!calendar) return;
+            
+            const allGrades = data.grades.filter(g => g.timestamp);
+            const activityMap = {};
+            allGrades.forEach(g => {
+                const date = new Date(g.timestamp * 1000);
+                const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+                if (!activityMap[key]) activityMap[key] = [];
+                activityMap[key].push(g);
+            });
+            
+            // Сохраняем для onclick
+            window.calendarData = activityMap;
+            
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = today.getMonth();
+            const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+            const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+            
+            const firstDay = new Date(year, month, 1);
+            const startDay = (firstDay.getDay() + 6) % 7;
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            let html = `
+                <div class="text-[10px] text-white/25 text-center mb-2">${monthNames[month]}</div>
+                <div class="grid grid-cols-7 gap-[3px] mb-1">
+                    ${dayNames.map(d => `<div class="text-[8px] text-white/15 text-center">${d}</div>`).join('')}
+                </div>
+                <div class="grid grid-cols-7 gap-[3px]">
+            `;
+            
+            for (let i = 0; i < startDay; i++) {
+                html += `<div class="aspect-square"></div>`;
+            }
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                const key = `${year}-${month}-${day}`;
+                const hasActivity = activityMap[key];
+                const isToday = day === today.getDate();
+                const isFuture = date > today;
+                
+                let classes = 'aspect-square rounded flex items-center justify-center text-[9px] transition-transform ';
+                if (hasActivity) {
+                    classes += 'bg-[#8fa7b3]/50 text-white/80 cursor-pointer active:scale-90';
+                    html += `<div class="${classes}" onclick="showDayWorks('${key}')">${day}</div>`;
+                } else {
+                    if (isToday) {
+                        classes += 'bg-white/8 text-white/60';
+                    } else if (isFuture) {
+                        classes += 'bg-white/[0.02] text-white/10';
+                    } else {
+                        classes += 'bg-white/[0.03] text-white/20';
+                    }
+                    html += `<div class="${classes}">${day}</div>`;
+                }
+            }
+            
+            html += '</div>';
+            calendar.innerHTML = html;
+        }
+        
+        function showDayWorks(key) {
+            const works = window.calendarData[key];
+            if (!works || !works.length) return;
+            
+            // Если одна работа - сразу детали
+            if (works.length === 1) {
+                showDetail(works[0].id);
+                return;
+            }
+            
+            // Несколько работ - список
+            const m = document.createElement('div');
+            m.className = 'fixed inset-0 z-[100] flex items-end justify-center bg-black/50 backdrop-blur-sm opacity-0 transition-opacity duration-200';
+            m.onclick = e => { if (e.target === m) closeModal(m); };
+            
+            const [y, mon, d] = key.split('-');
+            const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+            const dateStr = `${d} ${months[parseInt(mon)]}`;
+            
+            m.innerHTML = `
+                <div class="glass w-full max-w-md rounded-t-3xl p-6 pb-10 translate-y-full transition-transform duration-300 ease-out">
+                    <div class="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5"></div>
+                    <div class="text-lg font-semibold mb-1">${dateStr}</div>
+                    <div class="text-xs text-white/30 mb-4">${works.length} работы</div>
+                    <div class="space-y-2 max-h-[50vh] overflow-y-auto">
+                        ${works.map(w => `
+                            <div class="p-3 rounded-xl bg-white/5 cursor-pointer active:scale-[0.98] transition-transform" onclick="closeModal(this.closest('.fixed')); setTimeout(() => showDetail(${w.id}), 100);">
+                                <div class="flex justify-between items-center">
+                                    <div class="flex-1 min-w-0 pr-3">
+                                        <div class="text-sm truncate">${w.name}</div>
+                                        <div class="text-[10px] text-white/30 mt-0.5">${{essay:'Эссе',project:'Проект',test:'Пробник',practice:'ДЗ'}[w.type]}</div>
+                                    </div>
+                                    <div class="text-base font-medium text-[#a8c7b5]">${w.score}${w.type === 'project' ? `<span class="text-white/25 text-sm">/50</span>` : w.max ? `<span class="text-white/25 text-sm">/${w.max}</span>` : ''}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(m);
+            requestAnimationFrame(() => {
+                m.classList.remove('opacity-0');
+                m.querySelector('.glass').classList.remove('translate-y-full');
+            });
+        }
+
+        function toggleDropdown() {
+            const dropdown = document.getElementById('courseDropdown');
+            const arrow = document.getElementById('dropdownArrow');
+            const isOpen = !dropdown.classList.contains('opacity-0');
+            
+            if (isOpen) {
+                dropdown.classList.add('opacity-0', 'pointer-events-none', 'translate-y-[-8px]');
+                arrow.style.transform = '';
+            } else {
+                dropdown.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-[-8px]');
+                arrow.style.transform = 'rotate(180deg)';
+            }
+        }
+
+        function selectCourse(id) {
+            if (id === currentCourse) {
+                toggleDropdown();
+                return;
+            }
+            currentCourse = id;
+            toggleDropdown();
+            render();
+            setTimeout(() => { initCharts(); renderCalendar(); }, 250);
+        }
+
+        function showDetail(id) {
+            const w = data.grades.find(g => g.id === id);
+            if (!w) return;
+            
+            const m = document.createElement('div');
+            m.className = 'fixed inset-0 z-[100] flex items-end justify-center bg-black/50 backdrop-blur-sm opacity-0 transition-opacity duration-200';
+            m.onclick = e => { if (e.target === m) closeModal(m); };
+            
+            m.innerHTML = `
+                <div class="glass w-full max-w-md rounded-t-3xl p-6 pb-10 translate-y-full transition-transform duration-300 ease-out">
+                    <div class="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6"></div>
+                    <div class="flex justify-between items-start mb-5">
+                        <div class="flex-1 pr-4">
+                            <h2 class="text-xl font-semibold">${w.name}</h2>
+                            <p class="text-sm text-white/40 mt-1">${data.courses.find(c=>c.id===w.courseId).name}</p>
+                        </div>
+                        <div class="text-3xl font-semibold ${w.score ? 'text-[#a8c7b5]' : 'text-white/20'}">${w.score ?? '—'}${w.type === 'project' ? `<span class="text-lg text-white/30">/50</span>` : w.max ? `<span class="text-lg text-white/30">/${w.max}</span>` : ''}</div>
+                    </div>
+                    ${w.comment ? `
+                        <div class="mb-5">
+                            <div class="text-[11px] text-white/30 uppercase mb-2">Комментарий</div>
+                            <div class="p-4 rounded-xl bg-white/5 text-sm leading-relaxed">${w.comment}</div>
+                        </div>
+                    ` : ''}
+                    <div class="flex gap-3 mb-4">
+                        <div class="flex-1 p-4 rounded-xl bg-white/5">
+                            <div class="text-[10px] text-white/30 uppercase">Тип</div>
+                            <div class="text-sm mt-1">${{essay:'Эссе',project:'Проект',test:'Пробник',practice:'Практикум'}[w.type]}</div>
+                        </div>
+                        <div class="flex-1 p-4 rounded-xl bg-white/5">
+                            <div class="text-[10px] text-white/30 uppercase">Дата</div>
+                            <div class="text-sm mt-1">${w.date || 'Ожидает'}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(m);
+            requestAnimationFrame(() => {
+                m.classList.remove('opacity-0');
+                m.querySelector('.glass').classList.remove('translate-y-full');
+            });
+        }
+
+        function closeModal(m) {
+            m.classList.add('opacity-0');
+            m.querySelector('.glass').classList.add('translate-y-full');
+            setTimeout(() => m.remove(), 300);
+        }
+
+        // Charts
+        function makeChart(ctx, items, color, maxVal, minVal) {
+            const sorted = sortByDate(items);
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sorted.map(i => i.date),
+                    datasets: [{
+                        data: sorted.map(i => i.score),
+                        rawData: sorted,
+                        borderColor: color,
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.3,
+                        pointRadius: 3,
+                        pointBackgroundColor: color,
+                        pointBorderColor: color,
+                        pointBorderWidth: 0,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { intersect: false, mode: 'index' },
+                    plugins: { 
+                        legend: { display: false }, 
+                        tooltip: { 
+                            enabled: true,
+                            backgroundColor: 'rgba(12, 16, 23, 0.95)',
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            padding: 10,
+                            titleFont: { size: 11, weight: '400' },
+                            titleColor: 'rgba(255,255,255,0.4)',
+                            bodyFont: { size: 12, weight: '500' },
+                            bodyColor: '#fff',
+                            displayColors: false,
+                            callbacks: {
+                                title: (ctx) => sorted[ctx[0].dataIndex]?.date || '',
+                                label: (ctx) => {
+                                    const item = sorted[ctx.dataIndex];
+                                    return item?.name?.replace(/^(Эссе|Пробник|ДЗ):\s*/, '') || '';
+                                },
+                                afterLabel: (ctx) => {
+                                    const item = sorted[ctx.dataIndex];
+                                    return item?.max ? `${ctx.raw}/${item.max}` : `${ctx.raw}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { 
+                            display: true,
+                            min: minVal, 
+                            max: maxVal,
+                            grid: { color: 'rgba(255,255,255,0.03)' },
+                            ticks: { 
+                                color: 'rgba(255,255,255,0.2)', 
+                                font: { size: 9 },
+                                stepSize: Math.round((maxVal - minVal) / 2)
+                            },
+                            border: { display: false }
+                        },
+                        x: { 
+                            display: true,
+                            grid: { display: false },
+                            ticks: { 
+                                color: 'rgba(255,255,255,0.2)', 
+                                font: { size: 9 },
+                                maxRotation: 0
+                            },
+                            border: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function sortByDate(arr) {
+            return [...arr].sort((a, b) => a.timestamp - b.timestamp);
+        }
+
+        function initCharts() {
+            const essays = sortByDate(byType('essay'));
+            const projects = sortByDate(byType('project'));
+            const tests = sortByDate(byType('test'));
+            const practices = sortByDate(byType('practice'));
+
+            if (currentTab === 'main') {
+                // Главная использует сегментированные прогресс-бары, графиков нет
+                return;
+            } else if (currentTab === 'stats') {
+                // ДЗ - линейный (нормализуем к процентам из-за переменного максимума)
+                if (practices.length) {
+                    const normalizedPractices = practices.map(p => ({
+                        ...p,
+                        normalizedScore: p.max ? (p.score / p.max) * 100 : p.score
+                    }));
+                    const sorted = sortByDate(normalizedPractices);
+                    const maxPercent = Math.max(...normalizedPractices.map(p => p.normalizedScore));
+                    const minPercent = Math.min(...normalizedPractices.map(p => p.normalizedScore));
+                    
+                    new Chart(document.getElementById('practiceChart'), {
+                        type: 'line',
+                        data: {
+                            labels: sorted.map(i => i.date),
+                            datasets: [{
+                                data: sorted.map(i => i.normalizedScore),
+                                rawData: sorted,
+                                borderColor: '#8fb3a0',
+                                backgroundColor: 'transparent',
+                                borderWidth: 2,
+                                fill: false,
+                                tension: 0.3,
+                                pointRadius: 3,
+                                pointBackgroundColor: '#8fb3a0',
+                                pointBorderColor: '#8fb3a0',
+                                pointBorderWidth: 0,
+                                pointHoverRadius: 5
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: { intersect: false, mode: 'index' },
+                            plugins: { 
+                                legend: { display: false }, 
+                                tooltip: { 
+                                    enabled: true,
+                                    backgroundColor: 'rgba(12, 16, 23, 0.95)',
+                                    borderColor: 'rgba(255,255,255,0.1)',
+                                    borderWidth: 1,
+                                    cornerRadius: 8,
+                                    padding: 10,
+                                    titleFont: { size: 11, weight: '400' },
+                                    titleColor: 'rgba(255,255,255,0.4)',
+                                    bodyFont: { size: 12, weight: '500' },
+                                    bodyColor: '#fff',
+                                    displayColors: false,
+                                    callbacks: {
+                                        title: (ctx) => sorted[ctx[0].dataIndex]?.date || '',
+                                        label: (ctx) => {
+                                            const item = sorted[ctx.dataIndex];
+                                            return item?.name?.replace(/^ДЗ:\s*/, '') || '';
+                                        },
+                                        afterLabel: (ctx) => {
+                                            const item = sorted[ctx.dataIndex];
+                                            return item?.max ? `${item.score}/${item.max}` : `${item.score}`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: { 
+                                    display: true,
+                                    min: Math.max(0, Math.floor(minPercent / 10) * 10 - 10), 
+                                    max: Math.ceil(maxPercent / 10) * 10 + 10,
+                                    grid: { color: 'rgba(255,255,255,0.03)' },
+                                    ticks: { 
+                                        color: 'rgba(255,255,255,0.2)', 
+                                        font: { size: 9 },
+                                        stepSize: 25,
+                                        callback: v => v + '%'
+                                    },
+                                    border: { display: false }
+                                },
+                                x: { 
+                                    display: true,
+                                    grid: { display: false },
+                                    ticks: { 
+                                        color: 'rgba(255,255,255,0.2)', 
+                                        font: { size: 9 },
+                                        maxRotation: 0
+                                    },
+                                    border: { display: false }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // Эссе - столбчатая диаграмма (0-50)
+                if (essays.length) {
+                    const sortedEssays = sortByDate(essays);
+                    
+                    new Chart(document.getElementById('essayChart'), {
+                        type: 'bar',
+                        data: {
+                            labels: sortedEssays.map((e, i) => `${i + 1}`),
+                            datasets: [{
+                                data: sortedEssays.map(e => e.score),
+                                backgroundColor: '#8fa7b3',
+                                borderRadius: 4,
+                                borderSkipped: false,
+                                barThickness: 12,
+                                rawData: sortedEssays
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { 
+                                legend: { display: false },
+                                tooltip: {
+                                    enabled: true,
+                                    backgroundColor: 'rgba(12, 16, 23, 0.95)',
+                                    borderColor: 'rgba(255,255,255,0.1)',
+                                    borderWidth: 1,
+                                    cornerRadius: 8,
+                                    padding: 10,
+                                    titleFont: { size: 11, weight: '400' },
+                                    titleColor: 'rgba(255,255,255,0.4)',
+                                    bodyFont: { size: 12, weight: '500' },
+                                    bodyColor: '#fff',
+                                    displayColors: false,
+                                    callbacks: {
+                                        title: (ctx) => sortedEssays[ctx[0].dataIndex]?.date || '',
+                                        label: (ctx) => sortedEssays[ctx.dataIndex]?.name?.replace(/^Эссе:\s*/, '') || '',
+                                        afterLabel: (ctx) => `${ctx.raw}/50`
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: { 
+                                    display: true, 
+                                    min: 0, 
+                                    max: 50,
+                                    grid: { color: 'rgba(255,255,255,0.03)' },
+                                    ticks: { 
+                                        color: 'rgba(255,255,255,0.2)', 
+                                        font: { size: 9 },
+                                        stepSize: 12.5
+                                    },
+                                    border: { display: false }
+                                },
+                                x: { 
+                                    display: false,
+                                    grid: { display: false },
+                                    border: { display: false }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // Проекты - столбчатая диаграмма (0-50)
+                if (projects.length) {
+                    const sortedProjects = sortByDate(projects);
+                    
+                    new Chart(document.getElementById('projectChart'), {
+                        type: 'bar',
+                        data: {
+                            labels: sortedProjects.map((p, i) => `${i + 1}`),
+                            datasets: [{
+                                data: sortedProjects.map(p => p.score),
+                                backgroundColor: '#b3a08f',
+                                borderRadius: 4,
+                                borderSkipped: false,
+                                barThickness: 12,
+                                rawData: sortedProjects
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { 
+                                legend: { display: false },
+                                tooltip: {
+                                    enabled: true,
+                                    backgroundColor: 'rgba(12, 16, 23, 0.95)',
+                                    borderColor: 'rgba(255,255,255,0.1)',
+                                    borderWidth: 1,
+                                    cornerRadius: 8,
+                                    padding: 10,
+                                    titleFont: { size: 11, weight: '400' },
+                                    titleColor: 'rgba(255,255,255,0.4)',
+                                    bodyFont: { size: 12, weight: '500' },
+                                    bodyColor: '#fff',
+                                    displayColors: false,
+                                    callbacks: {
+                                        title: (ctx) => sortedProjects[ctx[0].dataIndex]?.date || '',
+                                        label: (ctx) => sortedProjects[ctx.dataIndex]?.name?.replace(/^Проект:\s*/, '') || '',
+                                        afterLabel: (ctx) => `${ctx.raw}/50`
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: { 
+                                    display: true, 
+                                    min: 0, 
+                                    max: 50,
+                                    grid: { color: 'rgba(255,255,255,0.03)' },
+                                    ticks: { 
+                                        color: 'rgba(255,255,255,0.2)', 
+                                        font: { size: 9 },
+                                        stepSize: 12.5
+                                    },
+                                    border: { display: false }
+                                },
+                                x: { 
+                                    display: false,
+                                    grid: { display: false },
+                                    border: { display: false }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        // Navigation
+        // Навигация с анимацией индикатора
+        const navItems = document.querySelectorAll('.nav-item');
+        const indicator = document.getElementById('navIndicator');
+        
+        function updateIndicator(index, animate = true) {
+            const btn = navItems[index];
+            if (!btn || !indicator) return;
+            
+            const btnWidth = btn.offsetWidth;
+            const translateX = index * btnWidth;
+            
+            indicator.style.width = btnWidth + 'px';
+            indicator.style.transform = `translateX(${translateX}px)`;
+        }
+        
+        // Инициализация индикатора
+        setTimeout(() => updateIndicator(1, false), 10);
+        
+        navItems.forEach(btn => {
+            btn.addEventListener('click', function() {
+                if (this.dataset.tab === currentTab) return;
+                currentTab = this.dataset.tab;
+                const index = parseInt(this.dataset.index);
+                
+                navItems.forEach(b => {
+                    b.classList.remove('active');
+                    b.querySelector('svg').classList.remove('opacity-90');
+                    b.querySelector('svg').classList.add('opacity-30');
+                });
+                this.classList.add('active');
+                this.querySelector('svg').classList.remove('opacity-30');
+                this.querySelector('svg').classList.add('opacity-90');
+                
+                updateIndicator(index);
+                
+                render();
+                setTimeout(() => { initCharts(); renderCalendar(); }, 250);
+            });
+        });
+
+        render();
+        setTimeout(() => { initCharts(); renderCalendar(); }, 50);
+    </script>
+</body>
+</html>
