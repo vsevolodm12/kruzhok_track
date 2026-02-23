@@ -30,7 +30,9 @@ def spa_app(request):
     try:
         with open(spa_path, 'r', encoding='utf-8') as f:
             content = f.read()
-        return HttpResponse(content, content_type='text/html')
+        response = HttpResponse(content, content_type='text/html')
+        response['Cache-Control'] = 'no-store'
+        return response
     except FileNotFoundError:
         return HttpResponse('index.html not found at ' + str(spa_path), status=404)
 
