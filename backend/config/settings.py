@@ -111,6 +111,11 @@ SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'None'  # Для работы в iframe Telegram
 SESSION_COOKIE_SECURE = not DEBUG  # HTTPS в продакшене
 
+# Cloudflare / любой reverse-proxy завершает SSL до нас —
+# говорим Django доверять заголовку X-Forwarded-Proto
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+
 # ===========================================
 # CSRF
 # ===========================================

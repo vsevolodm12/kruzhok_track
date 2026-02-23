@@ -1,0 +1,54 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    volumes:
+      - kruzhok_postgres:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: stankevich_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    restart: unless-stopped
+    volumes:
+      - kruzhok_static:/app/staticfiles
+      - ./credentials:/app/credentials:ro
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn --bind 0.0.0.0:8000 --workers 2 config.wsgi:application"
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    # Порты на хост НЕ открываем — cloudflared достучится через Docker-сеть
+    volumes:
+      - ./nginx.conf.homepi:/etc/nginx/conf.d/default.conf:ro
+      - kruzhok_static:/app/staticfiles:ro
+    depends_on:
+      - web
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - nginx
+
+volumes:
+  kruzhok_postgres:   # изолированные тома — не конфликтуют с другими проектами
+  kruzhok_static:
