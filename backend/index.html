@@ -105,7 +105,7 @@
     const Card = ({ children, className='', onClick, noPad }) => (
       <div
         onClick={onClick}
-        className={`bg-white dark:bg-[#1C1C1C] rounded-2xl
+        className={`bg-white dark:bg-[#1C1C1C] rounded-2xl mx-4
           ${noPad ? '' : 'p-5'}
           ${onClick ? 'cursor-pointer active:opacity-75 transition-opacity' : ''}
           ${className}`}
@@ -318,7 +318,7 @@
 
       const TaskList = ({ maxH }) => (
         <div className={`${maxH ? 'overflow-y-auto no-scrollbar' : ''}`} style={maxH ? {maxHeight: maxH} : {}}>
-          <div className="bg-white dark:bg-[#1C1C1C] rounded-2xl overflow-hidden mt-2">
+          <div className="bg-white dark:bg-[#1C1C1C] overflow-hidden mt-2">
             <div className="px-4 pt-3 pb-1"><SectionLabel>Все работы</SectionLabel></div>
             {[...filtered].reverse().map((task, idx, arr) => {
               const origIdx = arr.length-1-idx;
@@ -389,11 +389,11 @@
 
       return (
         <div className="space-y-4">
-          <div>
+          <div className="px-4">
             <h1 className="text-2xl font-semibold text-ink dark:text-[#F0F0F0]">Статистика</h1>
           </div>
 
-          <PillTabs tabs={T_ORDER.map(t => ({ value:t, label:T_LABEL[t] }))} active={activeType} onChange={setActiveType}/>
+          <div className="px-4"><PillTabs tabs={T_ORDER.map(t => ({ value:t, label:T_LABEL[t] }))} active={activeType} onChange={setActiveType}/></div>
 
           <Card>
             <div className="flex items-center justify-between mb-5">
@@ -433,16 +433,16 @@
 
       return (
         <div className="space-y-4">
-          <div>
+          <div className="px-4">
             <h1 className="text-2xl font-semibold text-ink dark:text-[#F0F0F0]">История</h1>
           </div>
 
-          <PillTabs tabs={allTabs} active={typeFilter} onChange={setTypeFilter}/>
+          <div className="px-4"><PillTabs tabs={allTabs} active={typeFilter} onChange={setTypeFilter}/></div>
 
           {shown.length === 0 ? (
             <div className="py-16 text-center text-faint dark:text-[#555] text-sm">Нет проверенных работ</div>
           ) : (
-            <div className="bg-white dark:bg-[#1C1C1C] rounded-2xl overflow-hidden">
+            <div className="bg-white dark:bg-[#1C1C1C] overflow-hidden">
               {shown.map((task, idx) => (
                 <div key={task.id} onClick={() => setSelectedTask(task)}
                   className={`flex items-center justify-between gap-4 px-5 py-4 cursor-pointer active:opacity-60 transition-opacity
@@ -528,11 +528,11 @@
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-8">
+          <div className="flex-1 overflow-y-auto no-scrollbar pb-8">
             {!active ? (
               <p className="text-sm text-faint dark:text-[#555] py-4">Расписание не заполнено</p>
             ) : (
-              <div className="bg-white dark:bg-[#1C1C1C] rounded-2xl overflow-hidden">
+              <div className="bg-white dark:bg-[#1C1C1C] overflow-hidden">
                 {active.items.map((item, idx, arr) => {
                   const status = getStatus(item.startsAt);
                   const start  = new Date(item.startsAt);
@@ -617,7 +617,7 @@
       const Section = ({ label, items, accent }) => items.length === 0 ? null : (
         <div className="mb-3">
           <div className="px-5 pb-2"><SectionLabel>{label}</SectionLabel></div>
-          <div className="bg-white dark:bg-[#1C1C1C] rounded-2xl overflow-hidden">
+          <div className="bg-white dark:bg-[#1C1C1C] overflow-hidden">
             {items.map(item => <DeadlineItem key={item.id} item={item} accent={accent}/>)}
           </div>
         </div>
@@ -633,7 +633,7 @@
             <p className="text-sm text-faint dark:text-[#555] mt-0.5">Задания по всем курсам</p>
           </div>
 
-          <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-8">
+          <div className="flex-1 overflow-y-auto no-scrollbar pb-8">
             {overdue.length === 0 && urgent.length === 0 && thisWeek.length === 0 && later.length === 0 && done.length === 0 ? (
               <p className="text-sm text-faint dark:text-[#555] py-8 text-center">Нет активных дедлайнов</p>
             ) : (
@@ -645,7 +645,7 @@
                 {done.length > 0 && (
                   <div className="mb-3 opacity-50">
                     <div className="px-5 pb-2"><SectionLabel>Сдано</SectionLabel></div>
-                    <div className="bg-white dark:bg-[#1C1C1C] rounded-2xl overflow-hidden">
+                    <div className="bg-white dark:bg-[#1C1C1C] overflow-hidden">
                       {done.map(item => <DeadlineItem key={item.id} item={item} accent="bg-[#D8D8D8] dark:bg-[#3A3A3A]"/>)}
                     </div>
                   </div>
@@ -905,7 +905,8 @@
                   <>
                     {/* ── Шапка ────────────────────────────────────── */}
                     {page === Page.HOME ? (
-                      <div className="px-5 shrink-0" style={{paddingTop:'max(env(safe-area-inset-top), 44px)', paddingBottom:'20px'}}>
+                      <div className="shrink-0" style={{paddingTop:'max(env(safe-area-inset-top), 44px)', paddingBottom:'20px'}}>
+                        <div className="px-5">
                         {/* Строка: иконка + название + тёмная тема */}
                         <div className="flex items-center justify-between mb-5">
                           <div className="flex items-center gap-2.5">
@@ -958,17 +959,19 @@
                             )}
                           </div>
                         </div>
+                        </div>
                         {/* Курсы */}
-                        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar pl-5">
                           {appData.courses.map(c => (
                             <button key={c.id} onClick={() => setCourse(c)}
-                              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all
+                              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all max-w-[200px] truncate
                                 ${c.id === course.id
                                   ? 'bg-ink text-white dark:bg-[#F0F0F0] dark:text-ink'
                                   : 'bg-white dark:bg-[#252525] text-muted dark:text-[#888]'}`}>
                               {c.name}
                             </button>
                           ))}
+                          <div className="shrink-0 w-5"/>
                         </div>
                       </div>
                     ) : (
@@ -989,7 +992,7 @@
                     )}
 
                     {/* ── Контент ────────────────────────────────────── */}
-                    <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-32 pt-4">
+                    <div className="flex-1 overflow-y-auto no-scrollbar pb-32 pt-4">
                       {page === Page.HOME    && <Home    course={course} tasks={appData.tasks} events={events} deadlines={appData.deadlines} onSchedule={() => setPage(Page.SCHEDULE)} onDeadlines={() => setPage(Page.DEADLINES)}/>}
                       {page === Page.STATS   && <Stats   course={course} tasks={appData.tasks}/>}
                       {page === Page.HISTORY && <History course={course} tasks={appData.tasks}/>}
