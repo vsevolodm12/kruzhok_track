@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>{% block title %}Кружок{% endblock %}</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- htmx -->
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+  <!-- Alpine.js -->
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- Telegram Web App SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              primary: '#0ea5e9',
+              accent: '#10b981',
+              dark: '#0f172a',
+              text: '#334155',
+              subtext: '#94a3b8'
+            }
+          },
+          boxShadow: {
+            glass: '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+      overscroll-behavior: none;
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.65);
+      -webkit-backdrop-filter: blur(24px);
+      backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+      border-radius: 2rem;
+    }
+    .dark .glass-card {
+      background: rgba(30, 41, 59, 0.7);
+      border-color: rgba(51, 65, 85, 0.5);
+      box-shadow: none;
+    }
+
+    .htmx-request .htmx-indicator {
+      opacity: 1;
+    }
+    .htmx-indicator {
+      opacity: 0;
+      transition: opacity 200ms ease-in;
+    }
+  </style>
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-brand-text dark:text-slate-200" x-data="{ darkMode: false }" :class="{ 'dark': darkMode }">
+
+  <!-- Декоративные круги -->
+  <div class="fixed top-[-10%] right-[-10%] w-[500px] h-[500px] bg-sky-100/50 dark:bg-sky-900/20 rounded-full blur-[100px] pointer-events-none"></div>
+  <div class="fixed bottom-[-10%] left-[-20%] w-[600px] h-[600px] bg-slate-200/40 dark:bg-slate-700/20 rounded-full blur-[120px] pointer-events-none"></div>
+
+  <main class="relative z-10 max-w-md mx-auto min-h-screen p-5 pt-8 pb-24">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block nav %}{% endblock %}
+
+  <script>
+    // Инициализация Telegram Web App
+    document.addEventListener('DOMContentLoaded', function() {
+      if (window.Telegram && window.Telegram.WebApp) {
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        // Тёмная тема из Telegram
+        if (tg.colorScheme === 'dark') {
+          document.documentElement.classList.add('dark');
+        }
+      }
+    });
+
+    // CSRF токен для htmx
+    document.body.addEventListener('htmx:configRequest', function(evt) {
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+      if (csrfToken) {
+        evt.detail.headers['X-CSRFToken'] = csrfToken.value;
+      }
+    });
+  </script>
+
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

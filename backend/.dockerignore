@@ -1,0 +1,31 @@
+# Секреты — НЕ копировать в образ (монтируются через env_file в docker-compose)
+.env
+*.env.local
+credentials/
+
+# Git
+.git/
+.gitignore
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Django runtime artifacts
+staticfiles/
+db.sqlite3
+*.log
+
+# Docker
+.docker/
+certbot/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/

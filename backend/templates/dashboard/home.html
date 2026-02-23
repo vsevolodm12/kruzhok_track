@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Главная — Кружок{% endblock %}
+
+{% block content %}
+<div class="space-y-6" x-data="{ courseOpen: false }">
+
+  <!-- Заголовок с темной темой -->
+  <div class="flex justify-between items-start px-1" x-data="nameEditor('{{ student.name|escapejs }}')">
+    <div class="flex-1 min-w-0 mr-3">
+      <h3 class="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-1">Студент</h3>
+
+      <!-- Режим просмотра -->
+      <div x-show="!editing" class="flex items-center gap-2">
+        <h1 class="text-3xl font-semibold text-brand-dark dark:text-white truncate" x-text="currentName"></h1>
+        <button @click="startEdit()" class="text-gray-300 dark:text-slate-600 hover:text-gray-500 dark:hover:text-slate-400 transition-colors flex-shrink-0 mt-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Режим редактирования -->
+      <div x-show="editing" class="flex items-center gap-2">
+        <input
+          x-ref="nameInput"
+          x-model="draftName"
+          @keydown.enter="save()"
+          @keydown.escape="cancel()"
+          maxlength="100"
+          class="text-2xl font-semibold text-brand-dark dark:text-white bg-transparent border-b-2 border-brand-primary outline-none w-full"
+        />
+        <button @click="save()" :disabled="saving" class="text-brand-primary hover:opacity-70 transition-opacity flex-shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+        </button>
+        <button @click="cancel()" class="text-gray-400 hover:opacity-70 transition-opacity flex-shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <p x-show="error" x-text="error" class="text-xs text-red-400 mt-1"></p>
+    </div>
+
+    <button
+      @click="darkMode = !darkMode"
+      class="flex-shrink-0 p-3 bg-white/50 dark:bg-slate-700/50 backdrop-blur-md rounded-full border border-white/50 dark:border-slate-600 text-brand-dark dark:text-white hover:bg-white/70 dark:hover:bg-slate-700 transition-colors"
+    >
+      <svg x-show="!darkMode" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+      </svg>
+      <svg x-show="darkMode" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="4"></circle>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Course Selector -->
+  {% if current_course %}
+  <div class="relative z-40">
+    <div
+      @click="courseOpen = !courseOpen"
+      class="glass-card p-5 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-transform duration-200"
+    >
+      <div>
+        <span class="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Курс</span>
+        <h2 class="text-xl font-semibold text-brand-dark dark:text-white leading-tight pr-4">{{ current_course.name }}</h2>
+      </div>
+      <svg class="w-5 h-5 text-gray-400 dark:text-slate-500 transition-transform" :class="{ 'rotate-180': courseOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 9 6 6 6-6"></path>
+      </svg>
+    </div>
+
+    <!-- Dropdown -->
+    <div
+      x-show="courseOpen"
+      x-transition:enter="transition ease-out duration-200"
+      x-transition:enter-start="opacity-0 -translate-y-2"
+      x-transition:enter-end="opacity-100 translate-y-0"
+      x-transition:leave="transition ease-in duration-150"
+      x-transition:leave-start="opacity-100 translate-y-0"
+      x-transition:leave-end="opacity-0 -translate-y-2"
+      @click.away="courseOpen = false"
+      class="absolute top-full left-0 right-0 mt-2 p-2 bg-white/95 dark:bg-slate-800/95 backdrop-blur-2xl rounded-[1.5rem] shadow-glass border border-white/60 dark:border-slate-700/60"
+    >
+      {% for enrollment in enrollments %}
+      <a
+        href="{% url 'switch_course' enrollment.course.id %}"
+        class="block p-4 rounded-xl cursor-pointer transition-colors mb-1 last:mb-0
+          {% if enrollment.course.id == current_course.id %}
+            bg-brand-primary/10 text-brand-primary
+          {% else %}
+            hover:bg-gray-50 dark:hover:bg-slate-700 text-brand-text dark:text-slate-300
+          {% endif %}"
+      >
+        <div class="font-medium">{{ enrollment.course.name }}</div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+  <div class="glass-card p-6 text-center">
+    <p class="text-brand-subtext">У вас пока нет активных курсов</p>
+  </div>
+  {% endif %}
+
+  <!-- Активность -->
+  {% if current_course %}
+  <div class="glass-card p-6">
+    <div class="flex items-center space-x-2 text-brand-accent mb-6">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+      </svg>
+      <span class="text-xs font-semibold tracking-widest uppercase">Активность</span>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div class="text-center">
+        <span class="text-4xl font-semibold text-brand-dark dark:text-white block">{{ total_submitted }}</span>
+        <span class="text-[10px] font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mt-1 block">Сдано</span>
+      </div>
+      <div class="text-center">
+        <span class="text-4xl font-semibold text-brand-dark dark:text-white block">{{ average_percent }}%</span>
+        <span class="text-[10px] font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mt-1 block">Процент</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Расписание курса -->
+  <div class="glass-card p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-widest">Расписание курса</h3>
+      <a href="{% url 'schedule' %}" class="text-xs font-semibold text-brand-primary hover:opacity-80 transition-opacity">
+        Весь курс
+      </a>
+    </div>
+
+    {% if schedule %}
+      {% if next_event %}
+      <div class="mb-3 pb-3 border-b border-gray-100 dark:border-slate-700/80">
+        <p class="text-[10px] font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-1">Ближайшее занятие</p>
+        <p class="text-sm font-semibold text-brand-dark dark:text-white leading-snug">{{ next_event.title }}</p>
+        <p class="text-xs text-gray-400 dark:text-slate-500 mt-1">{{ next_event.scheduled_at|date:"j E" }}</p>
+      </div>
+      {% endif %}
+
+      <div class="space-y-0">
+        {% for event in schedule %}
+        <div class="py-3 {% if not forloop.last %}border-b border-gray-100 dark:border-slate-700/80{% endif %}">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-brand-dark dark:text-white leading-snug">{{ event.title }}</p>
+            </div>
+            <div class="text-right shrink-0">
+              <p class="text-sm font-semibold text-brand-dark dark:text-white">
+                {{ event.scheduled_at|date:"d M" }}
+              </p>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-sm text-gray-400 dark:text-slate-500">Расписание пока не заполнено</p>
+    {% endif %}
+  </div>
+
+  <!-- Дедлайны домашек -->
+  <section class="px-1">
+    <div class="flex items-center justify-between mb-2">
+      <h3 class="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-widest">Дедлайны домашек</h3>
+      <span class="text-xs font-semibold text-brand-primary">7 дней</span>
+    </div>
+
+    {% if deadlines %}
+    <div class="divide-y divide-gray-100/90 dark:divide-slate-700/80">
+      {% for deadline in deadlines %}
+      <div class="py-3 first:pt-2 last:pb-2">
+        <div class="grid grid-cols-[10px_1fr_auto] items-start gap-2.5">
+          <span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-300 dark:bg-slate-600"></span>
+
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-brand-dark dark:text-white leading-snug">{{ deadline.title }}</p>
+            <p class="text-xs text-gray-400 dark:text-slate-500 mt-1">
+              {{ deadline.due_date|date:"D, j E" }} · {{ deadline.due_date|time:"H:i" }}
+            </p>
+          </div>
+
+          <div class="shrink-0">
+            <div class="relative h-10 w-10">
+              {% with days_left=deadline.days_left %}
+              {% with clamped_days=days_left|default:0 %}
+              <svg class="absolute inset-0 -rotate-90" viewBox="0 0 40 40" aria-hidden="true">
+                <circle cx="20" cy="20" r="17" fill="none" stroke="rgba(148, 163, 184, 0.22)" stroke-width="2.5"></circle>
+                <circle
+                  cx="20"
+                  cy="20"
+                  r="17"
+                  fill="none"
+                  stroke="{% if days_left <= 1 %}#0f172a{% elif days_left <= 3 %}#475569{% else %}#94a3b8{% endif %}"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-dasharray="{% widthratio clamped_days 7 107 %} 107"
+                ></circle>
+              </svg>
+              <div class="absolute inset-[6px] rounded-full bg-white/90 dark:bg-slate-900/90 border border-gray-100/80 dark:border-slate-700/80 flex items-center justify-center">
+                <span class="text-[11px] font-semibold text-brand-dark dark:text-white leading-none">{{ days_left }}</span>
+              </div>
+              {% endwith %}
+              {% endwith %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-gray-400 dark:text-slate-500 py-2">На ближайшие 7 дней дедлайнов нет</p>
+    {% endif %}
+  </section>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block nav %}
+{% with active='home' %}
+{% include "components/nav.html" %}
+{% endwith %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function nameEditor(initialName) {
+  return {
+    currentName: initialName,
+    draftName: initialName,
+    editing: false,
+    saving: false,
+    error: '',
+
+    startEdit() {
+      this.draftName = this.currentName;
+      this.editing = true;
+      this.error = '';
+      this.$nextTick(() => {
+        this.$refs.nameInput.focus();
+        this.$refs.nameInput.select();
+      });
+    },
+
+    cancel() {
+      this.editing = false;
+      this.error = '';
+    },
+
+    async save() {
+      const name = this.draftName.trim();
+      if (!name || name.length < 2) {
+        this.error = 'Имя слишком короткое';
+        return;
+      }
+      this.saving = true;
+      this.error = '';
+      try {
+        const csrf = document.querySelector('[name=csrfmiddlewaretoken]');
+        const resp = await fetch('/api/update-name/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrf ? csrf.value : '',
+          },
+          body: JSON.stringify({ name }),
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+          this.currentName = data.name;
+          this.editing = false;
+        } else {
+          this.error = data.error || 'Ошибка сохранения';
+        }
+      } catch {
+        this.error = 'Нет соединения';
+      } finally {
+        this.saving = false;
+      }
+    }
+  }
+}
+</script>
+{% endblock %}

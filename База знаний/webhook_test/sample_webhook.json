@@ -1,0 +1,20 @@
+{
+  "event_name": "lesson_task_accepted",
+  "hash": "21da7ce48e6dc084ceec027ae8c77f6b4b0273a0",
+  "id": "6TuhRlq4YVu9WS7DTQur4FrTq4RJPCBY",
+  "timestamp": 1770023268,
+  "payload": {
+    "user_id": "c4f1316c-a705-4f0b-99ca-6c22682e8114",
+    "user_email": "vsevolodmarchenkogoogle@yandex.ru",
+    "course_id": "3a2bdb1f-6834-4b3b-8190-2798fe750663",
+    "course_name": "Интенсив заключительным этапам перечней по экономике",
+    "tariff_id": "4cc3c960-0b75-49b2-bbbd-e27fcbb0869d",
+    "tariff_name": "Единый тариф",
+    "task_id": "4e628d84-0cb1-4717-b8d6-a868459c56c1",
+    "task_name": "26.01 23:59",
+    "task_type": "Assignment",
+    "task_result": "ok",
+    "report_link": "https://stankevich.zenclass.ru/desktop/dashboard/report/6081173e-1d4a-4512-9d8d-d5a60c68afd2",
+    "comment": "4"
+  }
+}

@@ -1,0 +1,38 @@
+# Временный nginx.conf для первичного получения SSL-сертификата (bootstrap).
+# Используется ОДИН РАЗ: запускаем nginx без SSL → certbot получает сертификат →
+# заменяем обратно на nginx.conf (с SSL) → рестартим nginx.
+#
+# Инструкция:
+#   cp nginx.conf nginx.conf.prod  # сохранить рабочий конфиг
+#   cp nginx.conf.bootstrap nginx.conf
+#   docker compose up -d db web nginx
+#   docker compose run --rm certbot certonly --webroot \
+#       -w /var/www/certbot -d kruzhoktrack.ru -d www.kruzhoktrack.ru \
+#       --email YOUR@EMAIL.COM --agree-tos --no-eff-email
+#   cp nginx.conf.prod nginx.conf
+#   docker compose restart nginx
+#   docker compose up -d certbot
+
+upstream django {
+    server web:8000;
+}
+
+server {
+    listen 80;
+    server_name kruzhoktrack.ru www.kruzhoktrack.ru;
+
+    # Certbot ACME challenge
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    # Всё остальное — в Django (HTTP, без редиректа на HTTPS)
+    location / {
+        proxy_pass         http://django;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+}

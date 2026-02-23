@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Вход — Кружок{% endblock %}
+
+{% block content %}
+<div x-data="authApp()" class="flex flex-col items-center justify-center min-h-[80vh]">
+
+  <!-- Логотип -->
+  <div class="mb-8 text-center">
+    <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-brand-primary to-brand-accent rounded-3xl flex items-center justify-center shadow-lg">
+      <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+      </svg>
+    </div>
+    <h1 class="text-2xl font-bold text-brand-dark dark:text-white">Кружок Станкевича</h1>
+    <p class="text-sm text-brand-subtext dark:text-slate-400 mt-1">Трекер прогресса олимпиадника</p>
+  </div>
+
+  <!-- Состояние: Загрузка (попытка TG автовхода) -->
+  <template x-if="state === 'loading'">
+    <div class="glass-card p-8 text-center">
+      <div class="animate-spin w-8 h-8 border-2 border-brand-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+      <p class="text-brand-subtext">Авторизация...</p>
+    </div>
+  </template>
+
+  <!-- Состояние: Форма email (основной способ входа) -->
+  <template x-if="state === 'email_form'">
+    <div class="glass-card p-6 w-full">
+      <h2 class="text-lg font-semibold text-brand-dark dark:text-white mb-2">Вход</h2>
+      <p class="text-sm text-brand-subtext dark:text-slate-400 mb-6">
+        Введите email, указанный при регистрации на курс
+      </p>
+
+      <form @submit.prevent="submitEmail">
+        <input
+          type="email"
+          x-model="email"
+          placeholder="student@example.com"
+          required
+          class="w-full px-4 py-3 bg-white/80 dark:bg-slate-700/80 border border-gray-200 dark:border-slate-600 rounded-xl text-brand-dark dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 mb-4"
+        >
+
+        <template x-if="error">
+          <p class="text-sm text-red-500 mb-4" x-text="error"></p>
+        </template>
+
+        <button
+          type="submit"
+          :disabled="loading"
+          class="w-full py-3 bg-brand-primary text-white font-semibold rounded-xl hover:bg-brand-primary/90 disabled:opacity-50 transition-colors"
+        >
+          <span x-show="!loading">Войти</span>
+          <span x-show="loading">Проверка...</span>
+        </button>
+      </form>
+    </div>
+  </template>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function authApp() {
+  return {
+    state: 'loading',
+    email: '',
+    error: '',
+    loading: false,
+
+    init() {
+      this.tryTelegramAuth();
+    },
+
+    async tryTelegramAuth() {
+      // Если внутри TMA — пробуем автовход по telegram_id
+      const tg = window.Telegram && window.Telegram.WebApp;
+      const initData = tg && tg.initData;
+
+      if (!initData) {
+        // Нет TG данных (открыто как сайт) — сразу форма email
+        this.state = 'email_form';
+        return;
+      }
+
+      try {
+        const response = await fetch('/auth/telegram/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ init_data: initData })
+        });
+
+        const data = await response.json();
+
+        if (data.status === 'authorized') {
+          // telegram_id привязан — автовход
+          window.location.href = '/dashboard/';
+        } else {
+          // need_link или ошибка — показываем форму email
+          // (telegram_data сохранён в сессии для привязки)
+          this.state = 'email_form';
+        }
+      } catch (e) {
+        // Ошибка сети — показываем форму email
+        this.state = 'email_form';
+      }
+    },
+
+    async submitEmail() {
+      this.loading = true;
+      this.error = '';
+
+      try {
+        const response = await fetch('/auth/email/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: this.email })
+        });
+
+        const data = await response.json();
+
+        if (data.status === 'authorized') {
+          window.location.href = '/dashboard/';
+        } else {
+          this.error = data.message || 'Ошибка авторизации';
+        }
+      } catch (e) {
+        this.error = 'Ошибка соединения с сервером';
+      } finally {
+        this.loading = false;
+      }
+    }
+  }
+}
+</script>
+{% endblock %}

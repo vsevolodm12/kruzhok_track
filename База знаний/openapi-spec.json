@@ -1,0 +1,2574 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Zenclass API",
+        "description": "# Введение\n\nДля работы с API Zenclass вам понадобится собственная онлайн-школа. Если у вас её ещё нет, зарегистрируйтесь на сайте [zenclass.ru](https://zenclass.ru/signup). Во время пробного периода вы можете использовать API без ограничений.\n\nПо всем вопросам работы API обращайтесь в чат поддержки или на почту support@zenclass.ru.\n\n# Начало работы\n\nЧтобы взаимодействовать с API, вам понадобится выпустить токен. Это можно сделать в настройках вашей школы (раздел \"Основные настройки\", вкладка \"API\").\n\nКоличество выпущенных токенов не ограничено. Мы рекомендуем выпускать отдельные токены для разных интеграций. Обратите внимание, что к токену следует относиться как к паролю: не сообщайте его посторонним, т.к. с использованием вашего токена можно вносить изменения в ваш аккаунт Zenclass.\n\nВыпущенный токен можно протестировать прямо на этом сайте, см. вкладку \"Authentication\" в боковом меню.\n\n# Разрешения токенов\n\nПри создании токена можно указать точечные разрешения (scopes). Например, один токен может быть предназначен для создания студентов, а другой для создания заказов. Каждое разрешение относится к группе методов API. Группы вы можете увидеть в боковом меню на этой странице. На данный момент, в Zenclass доступны следующие разрешения:\n\n| scope | Пояснение |\n|---|---|\n| school | Разрешение для работы с методами из группы \"Школа\" |\n| student | Разрешение для работы с методами из группы \"Студент\" |\n| student_course | Разрешение для работы с методами из группы \"Студент + Курс\" |\n| auto_login_link | Разрешение для работы с методами из группы \"Вход\" |\n\n# Формат взаимодействия\n\n## Синтаксис запросов и ответов\n\nВсе запросы отправляются по https с использованием одного из следующих методов: `GET`, `POST`, `PUT`. API поддерживает запросы с `Content-type: application/json`. Вот пример запроса с использованием `curl`:\n\n```\ncurl -X GET \"https://api.zenclass.net/api/v1/school\" \\\n  -H \"Accept: application/json\"\\\n  -H \"Authorization: Bearer [TOKEN]\" \\\n```\n\nВ этом примере:\n\n- `GET` это http-метод. У каждого эндпоинта в документации указано, какой метод следует использовать\n- `api.zenclass.net` это адрес нашего сервера. В будущем мы оставляем за собой право добавлять новые адреса серверов и отключать старые\n- `api/v1` это префикс, сигнализирующий о том, какую версию API вы используете. В данный момент, доступна только одна версия\n- `school` это название метода, который вы вызываете. Названия всех методов есть в соответствующих разделах документации\n- `[TOKEN]` это токен, сгенерированный в настройках вашей школы\n\nВ ответ на любой запрос сервер вернет либо ответ с кодом `200`, либо ошибку с кодами `4xx` или `5xx`.\n\nОтвет с кодом `200` содержит в себе обязательное поле `status` со значением true или false и опциональное поле `data`, внутрь которого уже вложены конкретные данные, уникальные для каждого эндпоинта. Пример успешного ответа:\n\n```\n{\n    \"status\": true,\n    \"data\": {\n        \"user_id\": \"...\",\n        \"message\": \"Ok\",\n        \"example_field\": \"anything\"\n    }\n}\n```\n\n## Ограничения и рекомендации\n\nУ методов API Zenclass действует ограничение на количество запросов.\n\nВ данный момент, ограничение одинаковое для всех методов: <b>60 запросов в минуту</b>. Ограничение действует на всю школу целиком. Отдельных лимитов по ключам или IP-адресу нет.\n\nОтвет на любой запрос, вне зависимости от того, вернул он ответ 200 или 4xx, будет содержать два заголовка:\n\n- `X-RateLimit-Limit: 60` это общее число доступных вам запросов в минуту\n- `X-RateLimit-Remaining: 59` это оставшееся число доступных запросов в текущую минуту\n\nЕсли вы превысите ограничение, на последующие запросы сервер будет возвращать ответ с http-статусом `429`.\n\n# Формат ошибок\n\n## Общая информация\n\nЛюбой запрос может вернуть ошибку. Бывают ошибки общего вида, а бывают специфические для конкретного эндпоинта.\n\nОшибки с http-кодом `5xx` означают, что серверу не удалось обработать запрос. Следует повторить попытку позже.\n\nОшибки с http-кодом `4xx` означают, что запрос обработан успешно, поэтому нужно смотреть на конкретный код и тело ответа, чтобы разобраться, что пошло не так. Типовые причины ошибок это неправильный токен, ошибка в URL или входных параметрах.\n\n## Пример ответа с ошибкой\n\n```\n// HTTP/1.1 404 Not Found\n{\n    \"status\": false,\n    \"error\": {\n        \"message\": \"Школа не найдена\",\n        \"code\": 100010001\n    }\n}\n```\n\nПоле `message` содержит пояснение ошибки, а поле `code` числовой код, служащий для более точной идентификации ошибки.\n\n## Список кодов ошибок\n\n| Код | Пояснение |\n|---|---|\n| 100010001 | Школа не найдена |\n| 100010002 | Операция уже выполняется |\n| 100010003 | Метод не найден |\n| 100010004 | Некорректные параметры запроса |\n| 100010005 | Внутренняя ошибка |\n| 100010006 | Неопределенная ошибка |\n| 100010007 | Слишком много запросов в минуту |\n| 100010008 | Ошибка авторизации |\n| 100010009 | Логически невозможная операция |\n| 100010010 | У токена отсутствует разрешение для работы с методом |\n| 100020001 | Пользователь не найден |\n| 100020002 | Пользователь отключен |\n| 100020003 | Этот email уже используется |\n| 100020004 | Статус не существует |\n| 100030001 | Студент не подписан на курс |\n| 100030002 | Студент уже подписан на курс |\n| 100030003 | Студент уже исключен из курса |\n| 100030004 | Студент не исключен из курса |\n| 100030005 | Студент уже записан на курс |\n| 100040001 | Курс не найден |\n| 100050001 | Тариф курса не найден |\n| 100060001 | Текущий тариф не найден |\n| 100060002 | Тариф уже установлен |\n| 100060003 | Тариф не присвоен |\n| 100060004 | Вы превысили лимит студентов |\n| 100070001 | Студент уже исключен из школы |\n| 100070002 | Студент не исключен из школы |",
+        "version": "1.0"
+    },
+    "servers": [
+        {
+            "url": "https://api.zenclass.net"
+        }
+    ],
+    "paths": {
+        "/api/v1/auto_login_link": {
+            "post": {
+                "tags": [
+                    "Вход"
+                ],
+                "summary": "Создать ссылку для входа в один клик",
+                "description": "Метод позволяет создать одноразовую ссылку с автоматической авторизацией в учетную запись указанного студента. После авторизации, пользователь будет перенаправлен по указанному пути внутри платформы. Ссылка действует в течение 25 часов после создания. Если перейти по ней после, у пользователя будет возможность сгенерировать новую ссылку и получить её на свой email. При этом пользователь должен быть зарегистрирован в школе, а если указанный в запросе путь ведет в курс, то иметь доступ к этому курсу.",
+                "operationId": "d1a823e3c7f8d3f21018adcc79cee257",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AutoLoginLinkCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Ссылка создана",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "auto_login_link": {
+                                                    "type": "string",
+                                                    "format": "url"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Не найдено",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "school": {
+                                        "summary": "Школа не найдена",
+                                        "value": {
+                                            "error": {
+                                                "message": "School not found",
+                                                "code": 100010001
+                                            }
+                                        }
+                                    },
+                                    "course": {
+                                        "summary": "Курс не найден",
+                                        "value": {
+                                            "error": {
+                                                "message": "Course not found",
+                                                "code": 100040001
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Неверные параметры запроса",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Переданы некорректные параметры",
+                                        "value": {
+                                            "error": {
+                                                "message": "Wrong params",
+                                                "code": 100010004
+                                            }
+                                        }
+                                    },
+                                    "concurrency": {
+                                        "summary": "Операция уже выполняется",
+                                        "value": {
+                                            "error": {
+                                                "message": "Operation in progress",
+                                                "code": 100010005
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Слишком много запросов",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Default",
+                                        "value": {
+                                            "error": {
+                                                "message": "Too many attempts",
+                                                "code": 100010007
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/school": {
+            "get": {
+                "tags": [
+                    "Школа"
+                ],
+                "summary": "Получение данных своей школы",
+                "description": "Метод позволяет запросить данные о своей школе: ID; название и описание, указанные в ЛК и дату создания школы.",
+                "operationId": "e7f5052540559e1cbd8268dfbdb50a62",
+                "responses": {
+                    "200": {
+                        "description": "Данные школы",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/SchoolResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Не найдено",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "school": {
+                                        "summary": "Школа не найдена",
+                                        "value": {
+                                            "error": {
+                                                "message": "School not found",
+                                                "code": 100010001
+                                            }
+                                        }
+                                    },
+                                    "course": {
+                                        "summary": "Курс не найден",
+                                        "value": {
+                                            "error": {
+                                                "message": "Course not found",
+                                                "code": 100040001
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Слишком много запросов",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Default",
+                                        "value": {
+                                            "error": {
+                                                "message": "Too many attempts",
+                                                "code": 100010007
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/student": {
+            "put": {
+                "tags": [
+                    "Студенты"
+                ],
+                "summary": "Обновить профиль",
+                "description": "Метод позволяет обновить поля в профиле студента в вашей школе",
+                "operationId": "bb52cebbab51cf03762dfaac4c2d0e49",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StudentUpdateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Профиль обновлен",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "user_id": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Не найдено",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "school": {
+                                        "summary": "Школа не найдена",
+                                        "value": {
+                                            "error": {
+                                                "message": "School not found",
+                                                "code": 100010001
+                                            }
+                                        }
+                                    },
+                                    "course": {
+                                        "summary": "Курс не найден",
+                                        "value": {
+                                            "error": {
+                                                "message": "Course not found",
+                                                "code": 100040001
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Некорректные параметры запроса",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Переданы некорректные параметры",
+                                        "value": {
+                                            "error": {
+                                                "message": "Wrong params",
+                                                "code": 100010004
+                                            }
+                                        }
+                                    },
+                                    "concurrency": {
+                                        "summary": "Операция уже выполняется",
+                                        "value": {
+                                            "error": {
+                                                "message": "Operation in progress",
+                                                "code": 100010005
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Слишком много запросов",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Default",
+                                        "value": {
+                                            "error": {
+                                                "message": "Too many attempts",
+                                                "code": 100010007
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Студенты"
+                ],
+                "summary": "Создать профиль",
+                "description": "Метод позволяет создать профиль студента в вашей школе, если профиля с указанным email еще не существует (иначе вернет ошибку). Этот метод только создает профиль в школе и не отвечает за зачисление на курс или получение доступа к продуктам школы.",
+                "operationId": "5a1d70e993ee234fa052207deb211471",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StudentCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Профиль создан",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "user_id": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "Ученик уже существует и не активен",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Не найдено",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "school": {
+                                        "summary": "Школа не найдена",
+                                        "value": {
+                                            "error": {
+                                                "message": "School not found",
+                                                "code": 100010001
+                                            }
+                                        }
+                                    },
+                                    "course": {
+                                        "summary": "Курс не найден",
+                                        "value": {
+                                            "error": {
+                                                "message": "Course not found",
+                                                "code": 100040001
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Неверные параметры запроса или ученик уже существует",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Переданы некорректные параметры",
+                                        "value": {
+                                            "error": {
+                                                "message": "Wrong params",
+                                                "code": 100010004
+                                            }
+                                        }
+                                    },
+                                    "concurrency": {
+                                        "summary": "Операция уже выполняется",
+                                        "value": {
+                                            "error": {
+                                                "message": "Operation in progress",
+                                                "code": 100010005
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Слишком много запросов",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Default",
+                                        "value": {
+                                            "error": {
+                                                "message": "Too many attempts",
+                                                "code": 100010007
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Студенты"
+                ],
+                "summary": "Удалить профиль",
+                "description": "Метод позволяет удалить профиль студента из вашей школы. Действие необратимое. После удаления возможно повторное создание профиля на тот же email. Новый профиль не будет содержать никаких доступов и данных из удаленного профиля.",
+                "operationId": "a1e76209c24444a4e46ebb5f8234f3bc",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StudentDeleteRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Профиль удален",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Не найдено",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "school": {
+                                        "summary": "Школа не найдена",
+                                        "value": {
+                                            "error": {
+                                                "message": "School not found",
+                                                "code": 100010001
+                                            }
+                                        }
+                                    },
+                                    "course": {
+                                        "summary": "Курс не найден",
+                                        "value": {
+                                            "error": {
+                                                "message": "Course not found",
+                                                "code": 100040001
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Некорректные параметры запроса",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Переданы некорректные параметры",
+                                        "value": {
+                                            "error": {
+                                                "message": "Wrong params",
+                                                "code": 100010004
+                                            }
+                                        }
+                                    },
+                                    "concurrency": {
+                                        "summary": "Операция уже выполняется",
+                                        "value": {
+                                            "error": {
+                                                "message": "Operation in progress",
+                                                "code": 100010005
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Слишком много запросов",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Default",
+                                        "value": {
+                                            "error": {
+                                                "message": "Too many attempts",
+                                                "code": 100010007
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/student/expel": {
+            "post": {
+                "tags": [
+                    "Студенты"
+                ],
+                "summary": "Исключить студента",
+                "description": "Метод позволяет исключить студента из вашей школы. Действие обратимое с помощью \"Восстановить студента\". После исключения из школы студент теряет доступ ко всем своим курсам и не может купить новые на странице школы, а также не может выполнять никаких действий в своем профиле.",
+                "operationId": "9c15757ffc758a21e0184af100b611a9",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StudentExpelRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Студент исключен из школы",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Не найдено",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "school": {
+                                        "summary": "Школа не найдена",
+                                        "value": {
+                                            "error": {
+                                                "message": "School not found",
+                                                "code": 100010001
+                                            }
+                                        }
+                                    },
+                                    "course": {
+                                        "summary": "Курс не найден",
+                                        "value": {
+                                            "error": {
+                                                "message": "Course not found",
+                                                "code": 100040001
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Неверные параметры запроса или студент уже исключен",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Переданы некорректные параметры",
+                                        "value": {
+                                            "error": {
+                                                "message": "Wrong params",
+                                                "code": 100010004
+                                            }
+                                        }
+                                    },
+                                    "concurrency": {
+                                        "summary": "Операция уже выполняется",
+                                        "value": {
+                                            "error": {
+                                                "message": "Operation in progress",
+                                                "code": 100010005
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Слишком много запросов",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Default",
+                                        "value": {
+                                            "error": {
+                                                "message": "Too many attempts",
+                                                "code": 100010007
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/student/reinstate": {
+            "post": {
+                "tags": [
+                    "Студенты"
+                ],
+                "summary": "Восстановить студента",
+                "description": "Метод позволяет восстановить студента в вашей школе. Обратное действие для \"Исключить студента\". После восстановления в школе ученик снова получает доступ к своим курсам (при этом, восстановление в школе не отменяет исключение из конкретного курса), а также может покупать новые курсы, доступные в школе.",
+                "operationId": "6f4eb1d1012a266fd78a26bfc88177d3",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StudentReinstateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Студент восстановлен в школу",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Не найдено",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "school": {
+                                        "summary": "Школа не найдена",
+                                        "value": {
+                                            "error": {
+                                                "message": "School not found",
+                                                "code": 100010001
+                                            }
+                                        }
+                                    },
+                                    "course": {
+                                        "summary": "Курс не найден",
+                                        "value": {
+                                            "error": {
+                                                "message": "Course not found",
+                                                "code": 100040001
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Неверные параметры запроса или студент не исключен",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Переданы некорректные параметры",
+                                        "value": {
+                                            "error": {
+                                                "message": "Wrong params",
+                                                "code": 100010004
+                                            }
+                                        }
+                                    },
+                                    "concurrency": {
+                                        "summary": "Операция уже выполняется",
+                                        "value": {
+                                            "error": {
+                                                "message": "Operation in progress",
+                                                "code": 100010005
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Слишком много запросов",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Default",
+                                        "value": {
+                                            "error": {
+                                                "message": "Too many attempts",
+                                                "code": 100010007
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/student/course/enroll": {
+            "post": {
+                "tags": [
+                    "Студент + Курс"
+                ],
+                "summary": "Зачислить",
+                "description": "Метод позволяет зачислить существующего студента на курс. Профиль студента может быть заранее зарегистрирован в школе любым способом, включая создание профиля по API \"Создать профиль\". В случае, если студент уже учится на указанном курсе, вернет сообщение об ошибке. Зачисление выдает полный доступ к курсу без оплаты и отменяет последующие рекуррентные платежи (по подписке или внутренней рассрочке от школы). Метод подходит для работы с обычными и календарными курсами и позволяет опционально (по умолчанию отключено) направлять стандартное письмо платформы о зачислении на курс.",
+                "operationId": "86a1c123bf6b6391d6229f068e50c706",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StudentCourseEnrollRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Студент зачислен",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StudentCourseActionResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Не найдено",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "school": {
+                                        "summary": "Школа не найдена",
+                                        "value": {
+                                            "error": {
+                                                "message": "School not found",
+                                                "code": 100010001
+                                            }
+                                        }
+                                    },
+                                    "course": {
+                                        "summary": "Курс не найден",
+                                        "value": {
+                                            "error": {
+                                                "message": "Course not found",
+                                                "code": 100040001
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Неверные параметры запроса или студент уже зачислен на этот курс",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Переданы некорректные параметры",
+                                        "value": {
+                                            "error": {
+                                                "message": "Wrong params",
+                                                "code": 100010004
+                                            }
+                                        }
+                                    },
+                                    "concurrency": {
+                                        "summary": "Операция уже выполняется",
+                                        "value": {
+                                            "error": {
+                                                "message": "Operation in progress",
+                                                "code": 100010005
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Слишком много запросов",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Default",
+                                        "value": {
+                                            "error": {
+                                                "message": "Too many attempts",
+                                                "code": 100010007
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/student/course/grant_access": {
+            "post": {
+                "tags": [
+                    "Студент + Курс"
+                ],
+                "summary": "Открыть полный доступ",
+                "description": "Метод позволяет открыть существующему студенту полный доступ к продукту. Профиль студента может быть заранее зарегистрирован в школе любым способом, включая создание профиля по API \"Создать профиль\". В случае, если студент уже учится на указанном курсе, вернет сообщение об ошибке. Открытие полного доступа выдает полный доступ к курсу без оплаты и отменяет последующие рекуррентные платежи (по подписке или внутренней рассрочке от школы). Метод подходит для работы с обычными и календарными курсами, а также с внешним продуктом.",
+                "operationId": "04c190ce02cde5e71952741b3d4ca0d5",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StudentCourseGrantAccessRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Доступ открыт",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StudentCourseActionResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Не найдено",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "school": {
+                                        "summary": "Школа не найдена",
+                                        "value": {
+                                            "error": {
+                                                "message": "School not found",
+                                                "code": 100010001
+                                            }
+                                        }
+                                    },
+                                    "course": {
+                                        "summary": "Курс не найден",
+                                        "value": {
+                                            "error": {
+                                                "message": "Course not found",
+                                                "code": 100040001
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Неверные параметры запроса или студент уже зачислен на этот курс",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Переданы некорректные параметры",
+                                        "value": {
+                                            "error": {
+                                                "message": "Wrong params",
+                                                "code": 100010004
+                                            }
+                                        }
+                                    },
+                                    "concurrency": {
+                                        "summary": "Операция уже выполняется",
+                                        "value": {
+                                            "error": {
+                                                "message": "Operation in progress",
+                                                "code": 100010005
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Слишком много запросов",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Default",
+                                        "value": {
+                                            "error": {
+                                                "message": "Too many attempts",
+                                                "code": 100010007
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/student/course/expel": {
+            "post": {
+                "tags": [
+                    "Студент + Курс"
+                ],
+                "summary": "Исключить студента",
+                "description": "Метод позволяет исключить студента из конкретного курса. Действие обратимое с помощью \"Восстановить студента\". После исключения из курса студент теряет доступ к этому курсу и не сможет купить его даже после сброса тарифа (до восстановления на курсе), но может обучаться в остальных доступных ему курсах или купить новые курсы на странице школы.",
+                "operationId": "bb064b024552f163d228c9c648e6040b",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StudentCourseExpelRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Студент исключен из курса",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Не найдено",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "school": {
+                                        "summary": "Школа не найдена",
+                                        "value": {
+                                            "error": {
+                                                "message": "School not found",
+                                                "code": 100010001
+                                            }
+                                        }
+                                    },
+                                    "course": {
+                                        "summary": "Курс не найден",
+                                        "value": {
+                                            "error": {
+                                                "message": "Course not found",
+                                                "code": 100040001
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Неверные параметры запроса или студент уже исключен из курса",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Переданы некорректные параметры",
+                                        "value": {
+                                            "error": {
+                                                "message": "Wrong params",
+                                                "code": 100010004
+                                            }
+                                        }
+                                    },
+                                    "concurrency": {
+                                        "summary": "Операция уже выполняется",
+                                        "value": {
+                                            "error": {
+                                                "message": "Operation in progress",
+                                                "code": 100010005
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Слишком много запросов",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Default",
+                                        "value": {
+                                            "error": {
+                                                "message": "Too many attempts",
+                                                "code": 100010007
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/student/course/reinstate": {
+            "post": {
+                "tags": [
+                    "Студент + Курс"
+                ],
+                "summary": "Восстановить студента",
+                "description": "Метод позволяет восстановить студента на конкретном курсе. Обратное действие для \"Исключить студента\". После восстановления на курсе студент будет восстановлен на тот поток курса, на который был зачислен до исключения, или, в случае отсутствия такого, в основной поток курса. Доступ к курсу будет восстановлен с сохранение прогресса.",
+                "operationId": "ed3f384c92f733ba9dcdc79c3ed9f43d",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StudentCourseReinstateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Студент восстановлен на курс",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Не найдено",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "school": {
+                                        "summary": "Школа не найдена",
+                                        "value": {
+                                            "error": {
+                                                "message": "School not found",
+                                                "code": 100010001
+                                            }
+                                        }
+                                    },
+                                    "course": {
+                                        "summary": "Курс не найден",
+                                        "value": {
+                                            "error": {
+                                                "message": "Course not found",
+                                                "code": 100040001
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Неверные параметры запроса или студент не исключен из курса",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Переданы некорректные параметры",
+                                        "value": {
+                                            "error": {
+                                                "message": "Wrong params",
+                                                "code": 100010004
+                                            }
+                                        }
+                                    },
+                                    "concurrency": {
+                                        "summary": "Операция уже выполняется",
+                                        "value": {
+                                            "error": {
+                                                "message": "Operation in progress",
+                                                "code": 100010005
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Слишком много запросов",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Default",
+                                        "value": {
+                                            "error": {
+                                                "message": "Too many attempts",
+                                                "code": 100010007
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/student/course/confirm": {
+            "post": {
+                "tags": [
+                    "Студент + Курс"
+                ],
+                "summary": "Принять заявку",
+                "description": "Метод позволяет принять заявку студента на курс. Доступ к курсу ограничивается заявками в случае, если в настройках оплаты тарифа курса \"Подтверждать заявки каждого ученика\" выбрано значение \"Вручную\". До принятия заявки ученик не сможет оплатить курс и попасть в него.",
+                "operationId": "808fa90b5da5e22e710e8105e4f6dbfb",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StudentCourseConfirmRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Заявка принята",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Не найдено",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "school": {
+                                        "summary": "Школа не найдена",
+                                        "value": {
+                                            "error": {
+                                                "message": "School not found",
+                                                "code": 100010001
+                                            }
+                                        }
+                                    },
+                                    "course": {
+                                        "summary": "Курс не найден",
+                                        "value": {
+                                            "error": {
+                                                "message": "Course not found",
+                                                "code": 100040001
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Неверные параметры запроса",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Переданы некорректные параметры",
+                                        "value": {
+                                            "error": {
+                                                "message": "Wrong params",
+                                                "code": 100010004
+                                            }
+                                        }
+                                    },
+                                    "concurrency": {
+                                        "summary": "Операция уже выполняется",
+                                        "value": {
+                                            "error": {
+                                                "message": "Operation in progress",
+                                                "code": 100010005
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Слишком много запросов",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Default",
+                                        "value": {
+                                            "error": {
+                                                "message": "Too many attempts",
+                                                "code": 100010007
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/student/course/decline": {
+            "post": {
+                "tags": [
+                    "Студент + Курс"
+                ],
+                "summary": "Отклонить заявку",
+                "description": "Метод позволяет отклонить заявку студента на курс. Доступ к курсу ограничивается заявками в случае, если в настройках оплаты тарифа курса \"Подтверждать заявки каждого ученика\" выбрано значение \"Вручную\". При отклонении заявки ученик не сможет оплатить курс и попасть в него.",
+                "operationId": "f0cf1e96db04f8d17f29e396a46f6317",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StudentCourseDeclineRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Заявка отклонена",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Не найдено",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "school": {
+                                        "summary": "Школа не найдена",
+                                        "value": {
+                                            "error": {
+                                                "message": "School not found",
+                                                "code": 100010001
+                                            }
+                                        }
+                                    },
+                                    "course": {
+                                        "summary": "Курс не найден",
+                                        "value": {
+                                            "error": {
+                                                "message": "Course not found",
+                                                "code": 100040001
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Неверные параметры запроса или студент уже принят на курс",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Переданы некорректные параметры",
+                                        "value": {
+                                            "error": {
+                                                "message": "Wrong params",
+                                                "code": 100010004
+                                            }
+                                        }
+                                    },
+                                    "concurrency": {
+                                        "summary": "Операция уже выполняется",
+                                        "value": {
+                                            "error": {
+                                                "message": "Operation in progress",
+                                                "code": 100010005
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Слишком много запросов",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Default",
+                                        "value": {
+                                            "error": {
+                                                "message": "Too many attempts",
+                                                "code": 100010007
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/student/course/change_validity": {
+            "post": {
+                "tags": [
+                    "Студент + Курс"
+                ],
+                "summary": "Ограничить доступ",
+                "description": "Метод позволяет изменить для ученика дату, до которой ему открыт доступ к курсу. После наступления указанной даты доступ к курсу у ученика будет закрыт. Для восстановления доступа требуется изменить дату доступа в будущее или сбросить ее. Для повторной покупки того же курса требуется сбросить тариф. Изменить эту дату для ученика курса можно независимо от того, включено ли опция в настройках оплаты тарифа курса \"Доступ к курсу - По времени\".",
+                "operationId": "aa4edcafc9c2da10f0e64abd4de75c92",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StudentCourseChangeValidityRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Дата изменена",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "valid_to": {
+                                                    "$ref": "#/components/schemas/student_course.valid_to"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Не найдено",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "school": {
+                                        "summary": "Школа не найдена",
+                                        "value": {
+                                            "error": {
+                                                "message": "School not found",
+                                                "code": 100010001
+                                            }
+                                        }
+                                    },
+                                    "course": {
+                                        "summary": "Курс не найден",
+                                        "value": {
+                                            "error": {
+                                                "message": "Course not found",
+                                                "code": 100040001
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Неверные параметры запроса или студент не учится на курсе",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Переданы некорректные параметры",
+                                        "value": {
+                                            "error": {
+                                                "message": "Wrong params",
+                                                "code": 100010004
+                                            }
+                                        }
+                                    },
+                                    "concurrency": {
+                                        "summary": "Операция уже выполняется",
+                                        "value": {
+                                            "error": {
+                                                "message": "Operation in progress",
+                                                "code": 100010005
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Слишком много запросов",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Default",
+                                        "value": {
+                                            "error": {
+                                                "message": "Too many attempts",
+                                                "code": 100010007
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/student/course/change_tariff": {
+            "post": {
+                "tags": [
+                    "Студент + Курс"
+                ],
+                "summary": "Изменить тариф",
+                "description": "Метод позволяет изменить текущий тариф студента на указанный без оплаты. В случае, если студент не обучается в указанном курсе, вернет сообщение об ошибке. При смене тарифа сохраняется прогресс обучения по доступным в новом тарифе урокам и заданиям.",
+                "operationId": "e5c9a0f731f1918ef97d18a7daa3e73b",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StudentCourseChangeTariffRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Тариф изменен",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Не найдено",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "school": {
+                                        "summary": "Школа не найдена",
+                                        "value": {
+                                            "error": {
+                                                "message": "School not found",
+                                                "code": 100010001
+                                            }
+                                        }
+                                    },
+                                    "course": {
+                                        "summary": "Курс не найден",
+                                        "value": {
+                                            "error": {
+                                                "message": "Course not found",
+                                                "code": 100040001
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Неверные параметры запроса или студент не учится на курсе",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Переданы некорректные параметры",
+                                        "value": {
+                                            "error": {
+                                                "message": "Wrong params",
+                                                "code": 100010004
+                                            }
+                                        }
+                                    },
+                                    "concurrency": {
+                                        "summary": "Операция уже выполняется",
+                                        "value": {
+                                            "error": {
+                                                "message": "Operation in progress",
+                                                "code": 100010005
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Слишком много запросов",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Default",
+                                        "value": {
+                                            "error": {
+                                                "message": "Too many attempts",
+                                                "code": 100010007
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/student/course/reset_tariff": {
+            "post": {
+                "tags": [
+                    "Студент + Курс"
+                ],
+                "summary": "Сбросить тариф",
+                "description": "Метод позволяет сбросить текущий тариф студента. Это необходимо для покупки другого тарифа или повторной покупки текущего тарифа. При сбросе тарифа сохраняется прогресс по ранее пройденным урокам и заданиям.",
+                "operationId": "244f125df0edc98cc7008bf5660b886b",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StudentCourseResetTariffRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Тариф сброшен",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Не найдено",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "school": {
+                                        "summary": "Школа не найдена",
+                                        "value": {
+                                            "error": {
+                                                "message": "School not found",
+                                                "code": 100010001
+                                            }
+                                        }
+                                    },
+                                    "course": {
+                                        "summary": "Курс не найден",
+                                        "value": {
+                                            "error": {
+                                                "message": "Course not found",
+                                                "code": 100040001
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Неверные параметры запроса или студент не учится на курсе",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Переданы некорректные параметры",
+                                        "value": {
+                                            "error": {
+                                                "message": "Wrong params",
+                                                "code": 100010004
+                                            }
+                                        }
+                                    },
+                                    "concurrency": {
+                                        "summary": "Операция уже выполняется",
+                                        "value": {
+                                            "error": {
+                                                "message": "Operation in progress",
+                                                "code": 100010005
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Слишком много запросов",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                },
+                                "examples": {
+                                    "default": {
+                                        "summary": "Default",
+                                        "value": {
+                                            "error": {
+                                                "message": "Too many attempts",
+                                                "code": 100010007
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "SuccessResponse": {
+                "properties": {
+                    "status": {
+                        "type": "boolean",
+                        "enum": [
+                            true,
+                            false
+                        ]
+                    }
+                },
+                "type": "object"
+            },
+            "ErrorResponse": {
+                "properties": {
+                    "status": {
+                        "type": "boolean"
+                    },
+                    "error": {
+                        "properties": {
+                            "message": {
+                                "type": "string"
+                            },
+                            "code": {
+                                "type": "integer"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "SchoolResource": {
+                "properties": {
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                },
+                "type": "object"
+            },
+            "AutoLoginLinkCreateRequest": {
+                "description": "Обратите внимание, что для поиска студента, требуется отправлять только одно из полей id/email.",
+                "required": [
+                    "data"
+                ],
+                "properties": {
+                    "id": {
+                        "$ref": "#/components/schemas/user.id"
+                    },
+                    "email": {
+                        "$ref": "#/components/schemas/email"
+                    },
+                    "data": {
+                        "description": "Параметры для создания URL",
+                        "required": [
+                            "redirect_path"
+                        ],
+                        "properties": {
+                            "redirect_path": {
+                                "description": "Адрес страницы внутри школы, куда пользователь в итоге будет направлен. Должен начинаться с символа \"/\". Пример: \"/student/courses/{id курса}\"",
+                                "type": "string",
+                                "maxLength": 255
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "course.id": {
+                "description": "Идентификатор курса",
+                "type": "string",
+                "format": "uuid"
+            },
+            "StudentCourseActionResponse": {
+                "properties": {
+                    "status": {
+                        "type": "boolean"
+                    },
+                    "data": {
+                        "properties": {
+                            "user_id": {
+                                "$ref": "#/components/schemas/user.id"
+                            },
+                            "course_id": {
+                                "$ref": "#/components/schemas/course.id"
+                            },
+                            "tariff_id": {
+                                "description": "Идентификатор тарифа",
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "valid_to": {
+                                "$ref": "#/components/schemas/student_course.valid_to"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "student_course.valid_to": {
+                "description": "Дата, до которой есть доступ к курсу, формат YYYY-MM-DD",
+                "type": "string",
+                "format": "date",
+                "nullable": true
+            },
+            "student_course.tariff_id": {
+                "description": "Идентификатор тарифа, к которому будет привязан студент. Если тариф на курсе лишь один, поле можно не присылать.",
+                "type": "string",
+                "format": "uuid",
+                "nullable": true
+            },
+            "email": {
+                "description": "Email студента",
+                "type": "string",
+                "format": "email"
+            },
+            "user.id": {
+                "description": "Идентификатор студента",
+                "type": "string",
+                "format": "uuid"
+            },
+            "user.first_name": {
+                "description": "Имя",
+                "type": "string",
+                "maxLength": 255,
+                "nullable": true
+            },
+            "user.second_name": {
+                "description": "Отчество",
+                "type": "string",
+                "maxLength": 255,
+                "nullable": true
+            },
+            "user.last_name": {
+                "description": "Фамилия",
+                "type": "string",
+                "maxLength": 255,
+                "nullable": true
+            },
+            "user.country": {
+                "description": "Страна",
+                "type": "string",
+                "maxLength": 255,
+                "nullable": true
+            },
+            "user.city": {
+                "description": "Город",
+                "type": "string",
+                "maxLength": 255,
+                "nullable": true
+            },
+            "user.phone": {
+                "description": "Телефон",
+                "type": "string",
+                "maxLength": 32,
+                "minLength": 3,
+                "nullable": true
+            },
+            "user.bio": {
+                "description": "О себе",
+                "type": "string",
+                "maxLength": 1024,
+                "nullable": true
+            },
+            "user.gender": {
+                "description": "Пол (доступные значение: male, female)",
+                "type": "string",
+                "enum": [
+                    "male",
+                    "female"
+                ],
+                "nullable": true
+            },
+            "user.birthday": {
+                "description": "Дата рождения в формате YYYY-MM-DD",
+                "type": "string",
+                "format": "date",
+                "nullable": true
+            },
+            "user.birthyear_hide": {
+                "description": "Скрывать год рождения",
+                "type": "boolean",
+                "nullable": false
+            },
+            "user.custom_1": {
+                "description": "Поле 1",
+                "type": "string",
+                "maxLength": 1024,
+                "nullable": true
+            },
+            "user.custom_2": {
+                "description": "Поле 2",
+                "type": "string",
+                "maxLength": 1024,
+                "nullable": true
+            },
+            "user.custom_3": {
+                "description": "Поле 3",
+                "type": "string",
+                "maxLength": 1024,
+                "nullable": true
+            },
+            "user.custom_4": {
+                "description": "Поле 4",
+                "type": "string",
+                "maxLength": 1024,
+                "nullable": true
+            },
+            "user.custom_5": {
+                "description": "Поле 5",
+                "type": "string",
+                "maxLength": 1024,
+                "nullable": true
+            },
+            "user.password": {
+                "description": "Пароль",
+                "type": "string",
+                "maxLength": 255,
+                "minLength": 4
+            },
+            "user.timezone": {
+                "description": "Часовой пояс в формате Europe/Moscow",
+                "type": "string",
+                "nullable": true
+            },
+            "StudentCreateRequest": {
+                "required": [
+                    "data"
+                ],
+                "properties": {
+                    "data": {
+                        "required": [
+                            "email"
+                        ],
+                        "properties": {
+                            "email": {
+                                "$ref": "#/components/schemas/email"
+                            },
+                            "first_name": {
+                                "$ref": "#/components/schemas/user.first_name"
+                            },
+                            "second_name": {
+                                "$ref": "#/components/schemas/user.second_name"
+                            },
+                            "last_name": {
+                                "$ref": "#/components/schemas/user.last_name"
+                            },
+                            "country": {
+                                "$ref": "#/components/schemas/user.country"
+                            },
+                            "city": {
+                                "$ref": "#/components/schemas/user.city"
+                            },
+                            "phone": {
+                                "$ref": "#/components/schemas/user.phone"
+                            },
+                            "bio": {
+                                "$ref": "#/components/schemas/user.bio"
+                            },
+                            "gender": {
+                                "$ref": "#/components/schemas/user.gender"
+                            },
+                            "birthday": {
+                                "$ref": "#/components/schemas/user.birthday"
+                            },
+                            "birthyear_hide": {
+                                "$ref": "#/components/schemas/user.birthyear_hide"
+                            },
+                            "custom_1": {
+                                "$ref": "#/components/schemas/user.custom_1"
+                            },
+                            "custom_2": {
+                                "$ref": "#/components/schemas/user.custom_2"
+                            },
+                            "custom_3": {
+                                "$ref": "#/components/schemas/user.custom_3"
+                            },
+                            "custom_4": {
+                                "$ref": "#/components/schemas/user.custom_4"
+                            },
+                            "custom_5": {
+                                "$ref": "#/components/schemas/user.custom_5"
+                            },
+                            "password": {
+                                "$ref": "#/components/schemas/user.password"
+                            },
+                            "timezone": {
+                                "$ref": "#/components/schemas/user.timezone"
+                            },
+                            "send_email": {
+                                "description": "Отправить ли на указанную почту уведомление о регистрации в школе",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "marketing_data": {
+                                "description": "Параметры источника",
+                                "properties": {
+                                    "utm_source": {
+                                        "description": "UTM Source",
+                                        "type": "string",
+                                        "maxLength": 512,
+                                        "nullable": true
+                                    },
+                                    "utm_medium": {
+                                        "description": "UTM Medium",
+                                        "type": "string",
+                                        "maxLength": 512,
+                                        "nullable": true
+                                    },
+                                    "utm_campaign": {
+                                        "description": "UTM Campaign",
+                                        "type": "string",
+                                        "maxLength": 512,
+                                        "nullable": true
+                                    },
+                                    "utm_content": {
+                                        "description": "UTM Content",
+                                        "type": "string",
+                                        "maxLength": 512,
+                                        "nullable": true
+                                    },
+                                    "utm_term": {
+                                        "description": "UTM Term",
+                                        "type": "string",
+                                        "maxLength": 512,
+                                        "nullable": true
+                                    },
+                                    "referer": {
+                                        "description": "Страница, с которой пользователь перешёл на этап создания профиля",
+                                        "type": "string",
+                                        "maxLength": 2048,
+                                        "nullable": true
+                                    },
+                                    "entry_point": {
+                                        "description": "URL регистрации (весь url, включая все параметры)",
+                                        "type": "string",
+                                        "maxLength": 2048,
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "StudentDeleteRequest": {
+                "description": "Обратите внимание, что для поиска студента, требуется отправлять только одно из полей id/email.",
+                "properties": {
+                    "id": {
+                        "$ref": "#/components/schemas/user.id"
+                    },
+                    "email": {
+                        "$ref": "#/components/schemas/email"
+                    }
+                },
+                "type": "object"
+            },
+            "StudentExpelRequest": {
+                "description": "Обратите внимание, что для поиска студента, требуется отправлять только одно из полей id/email.",
+                "properties": {
+                    "id": {
+                        "$ref": "#/components/schemas/user.id"
+                    },
+                    "email": {
+                        "$ref": "#/components/schemas/email"
+                    }
+                },
+                "type": "object"
+            },
+            "StudentReinstateRequest": {
+                "description": "Обратите внимание, что для поиска студента, требуется отправлять только одно из полей id/email.",
+                "properties": {
+                    "id": {
+                        "$ref": "#/components/schemas/user.id"
+                    },
+                    "email": {
+                        "$ref": "#/components/schemas/email"
+                    }
+                },
+                "type": "object"
+            },
+            "StudentUpdateRequest": {
+                "description": "Обратите внимание, что для поиска студента, требуется отправлять только одно из полей id/email. Для изменения почты студента, следует отправить новое значение в поле data.email",
+                "properties": {
+                    "id": {
+                        "$ref": "#/components/schemas/user.id"
+                    },
+                    "email": {
+                        "$ref": "#/components/schemas/email"
+                    },
+                    "data": {
+                        "description": "Параметры студента, которые требуется обновить",
+                        "properties": {
+                            "email": {
+                                "description": "Новый email, если требуется изменить",
+                                "type": "string",
+                                "format": "email"
+                            },
+                            "first_name": {
+                                "$ref": "#/components/schemas/user.first_name"
+                            },
+                            "second_name": {
+                                "$ref": "#/components/schemas/user.second_name"
+                            },
+                            "last_name": {
+                                "$ref": "#/components/schemas/user.last_name"
+                            },
+                            "country": {
+                                "$ref": "#/components/schemas/user.country"
+                            },
+                            "city": {
+                                "$ref": "#/components/schemas/user.city"
+                            },
+                            "phone": {
+                                "$ref": "#/components/schemas/user.phone"
+                            },
+                            "bio": {
+                                "$ref": "#/components/schemas/user.bio"
+                            },
+                            "gender": {
+                                "$ref": "#/components/schemas/user.gender"
+                            },
+                            "birthday": {
+                                "$ref": "#/components/schemas/user.birthday"
+                            },
+                            "birthyear_hide": {
+                                "$ref": "#/components/schemas/user.birthyear_hide"
+                            },
+                            "custom_1": {
+                                "$ref": "#/components/schemas/user.custom_1"
+                            },
+                            "custom_2": {
+                                "$ref": "#/components/schemas/user.custom_2"
+                            },
+                            "custom_3": {
+                                "$ref": "#/components/schemas/user.custom_3"
+                            },
+                            "custom_4": {
+                                "$ref": "#/components/schemas/user.custom_4"
+                            },
+                            "custom_5": {
+                                "$ref": "#/components/schemas/user.custom_5"
+                            },
+                            "password": {
+                                "$ref": "#/components/schemas/user.password"
+                            },
+                            "timezone": {
+                                "$ref": "#/components/schemas/user.timezone"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "StudentCourseChangeTariffRequest": {
+                "description": "Обратите внимание, что для поиска студента, требуется отправлять только одно из полей id/email.",
+                "required": [
+                    "course_id",
+                    "data"
+                ],
+                "properties": {
+                    "id": {
+                        "$ref": "#/components/schemas/user.id"
+                    },
+                    "email": {
+                        "$ref": "#/components/schemas/email"
+                    },
+                    "course_id": {
+                        "$ref": "#/components/schemas/course.id"
+                    },
+                    "data": {
+                        "required": [
+                            "tariff_id"
+                        ],
+                        "properties": {
+                            "tariff_id": {
+                                "$ref": "#/components/schemas/student_course.tariff_id"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "StudentCourseChangeValidityRequest": {
+                "description": "Обратите внимание, что для поиска студента, требуется отправлять только одно из полей id/email.",
+                "required": [
+                    "course_id",
+                    "data"
+                ],
+                "properties": {
+                    "id": {
+                        "$ref": "#/components/schemas/user.id"
+                    },
+                    "email": {
+                        "$ref": "#/components/schemas/email"
+                    },
+                    "course_id": {
+                        "$ref": "#/components/schemas/course.id"
+                    },
+                    "data": {
+                        "required": [
+                            "valid_to"
+                        ],
+                        "properties": {
+                            "valid_to": {
+                                "$ref": "#/components/schemas/student_course.valid_to"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "StudentCourseConfirmRequest": {
+                "description": "Обратите внимание, что для поиска студента, требуется отправлять только одно из полей id/email.",
+                "required": [
+                    "course_id"
+                ],
+                "properties": {
+                    "id": {
+                        "$ref": "#/components/schemas/user.id"
+                    },
+                    "email": {
+                        "$ref": "#/components/schemas/email"
+                    },
+                    "course_id": {
+                        "$ref": "#/components/schemas/course.id"
+                    },
+                    "data": {
+                        "properties": {
+                            "send_email": {
+                                "description": "Флаг, показывающий, следует ли отправлять студенту стандартные письма о принятии заявки.",
+                                "type": "boolean",
+                                "default": false
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "StudentCourseDeclineRequest": {
+                "description": "Обратите внимание, что для поиска студента, требуется отправлять только одно из полей id/email.",
+                "required": [
+                    "course_id"
+                ],
+                "properties": {
+                    "id": {
+                        "$ref": "#/components/schemas/user.id"
+                    },
+                    "email": {
+                        "$ref": "#/components/schemas/email"
+                    },
+                    "course_id": {
+                        "$ref": "#/components/schemas/course.id"
+                    },
+                    "data": {
+                        "properties": {
+                            "send_email": {
+                                "description": "Флаг, показывающий, следует ли отправлять студенту стандартные письма об отклонении заявки.",
+                                "type": "boolean",
+                                "default": false
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "StudentCourseEnrollRequest": {
+                "description": "Обратите внимание, что для поиска студента, требуется отправлять только одно из полей id/email.",
+                "required": [
+                    "course_id"
+                ],
+                "properties": {
+                    "id": {
+                        "$ref": "#/components/schemas/user.id"
+                    },
+                    "email": {
+                        "$ref": "#/components/schemas/email"
+                    },
+                    "course_id": {
+                        "$ref": "#/components/schemas/course.id"
+                    },
+                    "data": {
+                        "properties": {
+                            "tariff_id": {
+                                "$ref": "#/components/schemas/student_course.tariff_id"
+                            },
+                            "valid_to": {
+                                "$ref": "#/components/schemas/student_course.valid_to"
+                            },
+                            "send_email": {
+                                "description": "Флаг, показывающий, следует ли отправлять студенту стандартные письма о зачислении на курс.",
+                                "type": "boolean",
+                                "default": false
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "StudentCourseExpelRequest": {
+                "description": "Обратите внимание, что для поиска студента, требуется отправлять только одно из полей id/email.",
+                "required": [
+                    "course_id"
+                ],
+                "properties": {
+                    "id": {
+                        "$ref": "#/components/schemas/user.id"
+                    },
+                    "email": {
+                        "$ref": "#/components/schemas/email"
+                    },
+                    "course_id": {
+                        "$ref": "#/components/schemas/course.id"
+                    }
+                },
+                "type": "object"
+            },
+            "StudentCourseGrantAccessRequest": {
+                "description": "Обратите внимание, что для поиска студента, требуется отправлять только одно из полей id/email.",
+                "required": [
+                    "course_id"
+                ],
+                "properties": {
+                    "id": {
+                        "$ref": "#/components/schemas/user.id"
+                    },
+                    "email": {
+                        "$ref": "#/components/schemas/email"
+                    },
+                    "course_id": {
+                        "$ref": "#/components/schemas/course.id"
+                    },
+                    "data": {
+                        "properties": {
+                            "tariff_id": {
+                                "$ref": "#/components/schemas/student_course.tariff_id"
+                            },
+                            "valid_to": {
+                                "$ref": "#/components/schemas/student_course.valid_to"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "StudentCourseReinstateRequest": {
+                "description": "Обратите внимание, что для поиска студента, требуется отправлять только одно из полей id/email.",
+                "required": [
+                    "course_id"
+                ],
+                "properties": {
+                    "id": {
+                        "$ref": "#/components/schemas/user.id"
+                    },
+                    "email": {
+                        "$ref": "#/components/schemas/email"
+                    },
+                    "course_id": {
+                        "$ref": "#/components/schemas/course.id"
+                    }
+                },
+                "type": "object"
+            },
+            "StudentCourseResetTariffRequest": {
+                "description": "Обратите внимание, что для поиска студента, требуется отправлять только одно из полей id/email.",
+                "required": [
+                    "course_id"
+                ],
+                "properties": {
+                    "id": {
+                        "$ref": "#/components/schemas/user.id"
+                    },
+                    "email": {
+                        "$ref": "#/components/schemas/email"
+                    },
+                    "course_id": {
+                        "$ref": "#/components/schemas/course.id"
+                    }
+                },
+                "type": "object"
+            }
+        },
+        "securitySchemes": {
+            "Bearer": {
+                "type": "http",
+                "description": "Токен для авторизации можно сгенерировать в настройках вашей школы, вкладка \"API\".\n\nПолученный токен следует добавлять ко всем запросам в заголовке Authorization: Bearer [TOKEN].\n\nПример на curl выглядит так: `curl -H \"Authorization: Bearer [TOKEN]\"`.\n\nВы можете вставить свой токен в поле ниже и протестировать API в браузере, воспользовавшись боковым меню.\n",
+                "scheme": "bearer"
+            }
+        }
+    },
+    "security": [
+        {
+            "Bearer": []
+        }
+    ],
+    "tags": [
+        {
+            "name": "Школа"
+        },
+        {
+            "name": "Студенты"
+        },
+        {
+            "name": "Студент + Курс"
+        },
+        {
+            "name": "Вход",
+            "description": "Вход"
+        }
+    ]
+}

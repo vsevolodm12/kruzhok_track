@@ -1,0 +1,39 @@
+Django:
+# --- ЗАВИСИМОСТИ И ОКРУЖЕНИЯ ---
+node_modules/
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+.python-version
+index.html
+
+# --- DOCKER И ПОСТГРЕС (Очень важно!) ---
+# Игнорируем папки, куда Docker прокидывает данные базы
+postgres_data/
+pg_data/
+redis_data/
+.docker/
+
+# --- СБОРКА И СТАТИКА ---
+# Игнорируем только то, что генерируется автоматически
+dist/
+build/
+.cache/
+# Если используешь Django-staticfiles, игнорируй собранную статику:
+staticfiles/
+
+# --- МЕДИА И ЛОГИ (Тяжелые файлы) ---
+# Папка для загрузок пользователей в Django
+media/
+*.log
+*.sqlite3
+
+# --- СЕКРЕТЫ И КОНФИГИ IDE ---
+.env
+.env.*
+.git/
+.vscode/
+.idea/
+.DS_Store

@@ -1,3 +1,16 @@
-*
-!.gitignore
-!index.html
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Старый Vercel SPA (больше не нужен в корне — SPA отдаёт Django)
+/index.html

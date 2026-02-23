@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Кружок Станкевича</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types/prop-types.min.js"></script>
+  <script src="https://unpkg.com/recharts@2.12.0/umd/Recharts.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+      overscroll-behavior: none;
+      margin: 0;
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    @supports (padding-bottom: env(safe-area-inset-bottom)) {
+      .pb-safe { padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem); }
+    }
+  </style>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            ink:    '#1A1A1A',
+            muted:  '#6B6B6B',
+            faint:  '#ADADAD',
+            line:   '#EBEBEB',
+            surface:'#F7F7F7',
+            accent: '#6366F1',
+          },
+        }
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useMemo, useRef, useEffect } = React;
+    const { LineChart, Line, ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, Cell, CartesianGrid } = Recharts;
+
+    // ─── API helper (same origin — Django serves this file) ───────────────────
+    const api = (path, opts = {}) => fetch(path, {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+      ...opts,
+    });
+
+    // ─── Icons ────────────────────────────────────────────────────────────────
+    const Ic = ({ size = 20, stroke = 1.75, children, ...p }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
+        fill="none" stroke="currentColor" strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" {...p}>
+        {children}
+      </svg>
+    );
+    const IcHome      = p => <Ic {...p}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></Ic>;
+    const IcBook      = p => <Ic {...p}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></Ic>;
+    const IcChart     = p => <Ic {...p}><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></Ic>;
+    const IcMoon      = p => <Ic {...p}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></Ic>;
+    const IcSun       = p => <Ic {...p}><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></Ic>;
+    const IcX         = p => <Ic {...p}><path d="M18 6 6 18M6 6l12 12"/></Ic>;
+    const IcChevDown  = p => <Ic {...p}><path d="m6 9 6 6 6-6"/></Ic>;
+    const IcPhone     = p => <Ic {...p}><rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/></Ic>;
+    const IcMonitor   = p => <Ic {...p}><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/></Ic>;
+    const IcArrowUp   = p => <Ic {...p}><path d="m5 12 7-7 7 7M12 19V5"/></Ic>;
+    const IcArrowDown = p => <Ic {...p}><path d="M12 5v14m7-7-7 7-7-7"/></Ic>;
+    const IcMinus     = p => <Ic {...p}><path d="M5 12h14"/></Ic>;
+    const IcCalendar  = p => <Ic {...p}><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></Ic>;
+    const IcChevLeft  = p => <Ic {...p}><path d="m15 18-6-6 6-6"/></Ic>;
+    const IcPencil    = p => <Ic {...p}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></Ic>;
+
+    // ─── Constants ────────────────────────────────────────────────────────────
+    const Page = { HOME: 'home', SCHEDULE: 'schedule', DEADLINES: 'deadlines', STATS: 'stats', HISTORY: 'history' };
+    const T    = { HW: 'HW', MOCK: 'MOCK', ESSAY: 'ESSAY', PROJECT: 'PROJECT' };
+    const T_LABEL      = { [T.HW]: 'Домашка',          [T.MOCK]: 'Пробник',  [T.ESSAY]: 'Эссе',  [T.PROJECT]: 'Проект' };
+    const T_LABEL_FULL = { [T.HW]: 'Домашнее задание', [T.MOCK]: 'Пробник',  [T.ESSAY]: 'Эссе',  [T.PROJECT]: 'Проект' };
+    const T_COLOR      = { [T.HW]: '#6366F1', [T.MOCK]: '#0EA5E9', [T.ESSAY]: '#F59E0B', [T.PROJECT]: '#8B5CF6' };
+    const T_ORDER      = [T.HW, T.MOCK, T.ESSAY, T.PROJECT];
+
+    // ─── Utils ────────────────────────────────────────────────────────────────
+    const ru = (d, opts) => new Date(d).toLocaleDateString('ru-RU', opts);
+    const fmt = {
+      day:       d => ru(d, { day:'numeric', month:'long' }),
+      monthShort:d => ru(d, { month:'short' }).replace('.','').toUpperCase(),
+      time:      d => new Date(d).toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' }),
+      monthYear: d => ru(d, { month:'long', year:'numeric' }),
+      fullDate:  d => ru(d, { day:'numeric', month:'long', year:'numeric' }),
+      dateTime:  d => `${ru(d,{weekday:'short',day:'numeric',month:'long'})} · ${new Date(d).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}`,
+    };
+
+    // ─── Card ─────────────────────────────────────────────────────────────────
+    const Card = ({ children, className='', onClick, noPad }) => (
+      <div
+        onClick={onClick}
+        className={`bg-white dark:bg-[#1C1C1C] rounded-2xl
+          ${noPad ? '' : 'p-5'}
+          ${onClick ? 'cursor-pointer active:opacity-75 transition-opacity' : ''}
+          ${className}`}
+      >
+        {children}
+      </div>
+    );
+
+    // ─── Pill Tabs ────────────────────────────────────────────────────────────
+    const PillTabs = ({ tabs, active, onChange, className='' }) => (
+      <div className={`flex items-center gap-2 overflow-x-auto no-scrollbar ${className}`}>
+        {tabs.map(tab => (
+          <button
+            key={tab.value}
+            onClick={() => onChange(tab.value)}
+            className={`shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200
+              ${active === tab.value
+                ? 'bg-ink text-white dark:bg-[#F0F0F0] dark:text-ink'
+                : 'bg-[#EFEFEF] dark:bg-[#252525] text-muted dark:text-[#888]'}`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+    );
+
+    // ─── Section Label ────────────────────────────────────────────────────────
+    const SectionLabel = ({ children }) => (
+      <p className="text-[11px] font-medium text-[#8E8E93] dark:text-[#636366] uppercase tracking-[0.05em]">{children}</p>
+    );
+
+    // ─── Task Modal ───────────────────────────────────────────────────────────
+    const TaskModal = ({ task, courseName, onClose }) => {
+      if (!task) return null;
+      return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/30 dark:bg-black/60" onClick={onClose}/>
+          <div className="relative w-full max-w-sm bg-white dark:bg-[#1C1C1C] rounded-3xl shadow-2xl p-7">
+            <button onClick={onClose}
+              className="absolute top-5 right-5 w-8 h-8 rounded-full bg-surface dark:bg-[#252525] flex items-center justify-center text-muted dark:text-[#888] hover:bg-line dark:hover:bg-[#333] transition-colors">
+              <IcX size={15}/>
+            </button>
+            <SectionLabel>{T_LABEL_FULL[task.type]}</SectionLabel>
+            <h3 className="text-xl font-semibold text-ink dark:text-[#F0F0F0] mt-1 mb-1 leading-snug pr-8">{task.name}</h3>
+            <p className="text-sm text-faint dark:text-[#555] mb-6 pb-5 border-b border-line dark:border-[#2A2A2A]">{courseName}</p>
+            <div className="flex justify-between items-end">
+              <div>
+                <SectionLabel>Оценка</SectionLabel>
+                <div className="flex items-baseline gap-1 mt-1">
+                  <span className="text-5xl font-semibold text-ink dark:text-[#F0F0F0]">{task.score !== null && task.score !== undefined ? task.score : '—'}</span>
+                  <span className="text-xl text-faint dark:text-[#444]">/{task.maxScore}</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <SectionLabel>Дата</SectionLabel>
+                <p className="text-base font-semibold text-ink dark:text-[#F0F0F0] mt-1">{task.date ? fmt.day(task.date) : '—'}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ─── Home Page ────────────────────────────────────────────────────────────
+    const Home = ({ course, tasks, events, deadlines, onSchedule, onDeadlines }) => {
+      const [selectedTask, setSelectedTask] = useState(null);
+      const courseTasks = tasks.filter(t => t.courseId === course.id);
+      const tasksWithScore = courseTasks.filter(t => t.score !== null && t.score !== undefined);
+      const avg = tasksWithScore.length
+        ? Math.round(tasksWithScore.reduce((s,t) => s + t.score/t.maxScore, 0) / tasksWithScore.length * 100)
+        : 0;
+
+      const today = new Date(); today.setHours(0,0,0,0);
+      const weekEnd = new Date(today); weekEnd.setDate(weekEnd.getDate()+7);
+      const pending = deadlines.filter(d =>
+        d.courseId === course.id && !d.submitted
+        && new Date(d.dueDate) >= today && new Date(d.dueDate) <= weekEnd
+      );
+
+      const sortedEvents = [...events].sort((a,b) => new Date(a.startsAt)-new Date(b.startsAt));
+      const now = new Date();
+      const upcoming = sortedEvents.filter(e => new Date(e.startsAt) >= now).slice(0, 4);
+
+      const getDaysLeft = dueDate => {
+        const due = new Date(dueDate); due.setHours(0,0,0,0);
+        return Math.round((due - today) / 86400000);
+      };
+
+      return (
+        <div className="space-y-4">
+          {/* Активность */}
+          <Card>
+            <SectionLabel>Активность</SectionLabel>
+            <div className="grid grid-cols-2 gap-4 mt-3">
+              <div>
+                <span className="text-4xl font-semibold text-ink dark:text-[#F0F0F0]">{courseTasks.length}</span>
+                <span className="block text-xs text-faint dark:text-[#555] mt-1 uppercase tracking-wider">Сдано</span>
+              </div>
+              <div>
+                <span className="text-4xl font-semibold text-ink dark:text-[#F0F0F0]">{avg}%</span>
+                <span className="block text-xs text-faint dark:text-[#555] mt-1 uppercase tracking-wider">Средний балл</span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Расписание */}
+          <Card noPad>
+            <div className="flex items-center justify-between px-5 pt-5 pb-4">
+              <SectionLabel>Расписание курса</SectionLabel>
+              <button onClick={onSchedule}
+                className="text-xs font-medium text-muted dark:text-[#888] hover:opacity-60 transition-opacity">
+                Смотреть все
+              </button>
+            </div>
+            {upcoming.length === 0 ? (
+              <p className="text-sm text-faint dark:text-[#555] px-5 pb-5">Расписание не заполнено</p>
+            ) : (
+              <div className="px-5 pb-3">
+                {upcoming.map((item, idx) => {
+                  const start = new Date(item.startsAt);
+                  const startDay = new Date(start); startDay.setHours(0,0,0,0);
+                  const diff = Math.round((startDay - today) / 86400000);
+                  const isToday = diff === 0;
+                  return (
+                    <div key={item.id}
+                      className={`grid grid-cols-[44px_1fr] gap-3 py-3
+                        ${idx < upcoming.length-1 ? 'border-b border-[#F2F2F2] dark:border-[#242424]' : ''}
+                        ${isToday ? 'rounded-xl -mx-2 px-2 bg-[#EEF2FF] dark:bg-[#1A1A2E]' : ''}`}>
+                      <div className="text-center">
+                        <p className={`text-lg font-semibold leading-none ${isToday ? 'text-accent' : 'text-ink dark:text-[#F0F0F0]'}`}>
+                          {start.getDate()}
+                        </p>
+                        <p className="text-[9px] font-semibold uppercase tracking-wide text-faint dark:text-[#555] mt-0.5">
+                          {fmt.monthShort(item.startsAt)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold leading-snug text-ink dark:text-[#F0F0F0]">
+                          {item.topic}
+                        </p>
+                        <p className={`text-xs mt-0.5 ${isToday ? 'text-accent' : 'text-faint dark:text-[#555]'}`}>
+                          {isToday ? 'Сегодня · ' : ''}занятие
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+
+          {/* Дедлайны */}
+          <Card noPad>
+            <div className="flex items-center justify-between px-5 pt-5 pb-4">
+              <SectionLabel>Дедлайны · 7 дней</SectionLabel>
+              <button onClick={onDeadlines} className="text-xs font-medium text-muted dark:text-[#888] hover:opacity-60 transition-opacity">Все дедлайны</button>
+            </div>
+            {pending.length === 0 ? (
+              <p className="text-sm text-faint dark:text-[#555] px-5 pb-5">Нет ближайших дедлайнов</p>
+            ) : (
+              <div className="space-y-3 px-5 pb-5">
+                {pending.map(item => {
+                  const days = getDaysLeft(item.dueDate);
+                  const isUrgent = days <= 1;
+                  const barCls = isUrgent ? 'bg-[#1A1A1A] dark:bg-[#E0E0E0]' : 'bg-[#D0D0D0] dark:bg-[#3A3A3A]';
+                  const daysText = days === 0 ? 'сегодня' : days === 1 ? 'завтра' : `через ${days} дн.`;
+                  return (
+                    <div key={item.id} className="flex items-center gap-3">
+                      <div className={`w-0.5 h-10 rounded-full shrink-0 ${barCls}`}/>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-ink dark:text-[#F0F0F0] truncate">{item.title}</p>
+                        <p className="text-xs text-faint dark:text-[#555]">{fmt.day(item.dueDate)} · {daysText}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+
+          {selectedTask && <TaskModal task={selectedTask} courseName={course.name} onClose={() => setSelectedTask(null)}/>}
+        </div>
+      );
+    };
+
+    // ─── Stats Page ───────────────────────────────────────────────────────────
+    const Stats = ({ course, tasks }) => {
+      const [activeType, setActiveType] = useState(T.HW);
+      const [selectedTask, setSelectedTask] = useState(null);
+
+      const filtered = tasks
+        .filter(t => t.courseId === course.id && t.type === activeType && t.score !== null && t.score !== undefined)
+        .sort((a,b) => new Date(a.date)-new Date(b.date));
+
+      const avg   = filtered.length ? Math.round(filtered.reduce((s,t)=>s+t.score,0)/filtered.length) : 0;
+      const color = T_COLOR[activeType];
+      const data  = filtered.map((t,i) => ({ i:i+1, score:t.score, task:t }));
+
+      const Tip = ({ active, payload }) => {
+        if (!active || !payload?.length) return null;
+        const t = payload[0].payload.task;
+        return (
+          <div className="bg-white dark:bg-[#1C1C1C] rounded-xl p-3 text-xs">
+            <p className="font-semibold text-ink dark:text-[#F0F0F0] mb-1 max-w-[160px] leading-snug">{t.name}</p>
+            <p style={{color}}>Балл: {t.score} / {t.maxScore}</p>
+            <p className="text-faint dark:text-[#555] mt-0.5">{t.date ? fmt.day(t.date) : ''}</p>
+          </div>
+        );
+      };
+
+      const TaskList = ({ maxH }) => (
+        <div className={`${maxH ? 'overflow-y-auto no-scrollbar' : ''}`} style={maxH ? {maxHeight: maxH} : {}}>
+          <div className="bg-white dark:bg-[#1C1C1C] rounded-2xl overflow-hidden mt-2">
+            <div className="px-4 pt-3 pb-1"><SectionLabel>Все работы</SectionLabel></div>
+            {[...filtered].reverse().map((task, idx, arr) => {
+              const origIdx = arr.length-1-idx;
+              const prev = origIdx > 0 ? filtered[origIdx-1] : null;
+              const diff = prev ? task.score - prev.score : null;
+              return (
+                <div key={task.id} onClick={() => setSelectedTask(task)}
+                  className={`flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-surface dark:hover:bg-[#222] transition-colors
+                    ${idx < arr.length-1 ? 'border-b border-[#F5F5F5] dark:border-[#242424]' : ''}`}>
+                  <div className="flex-1 min-w-0 pr-4">
+                    <p className="text-sm font-semibold text-ink dark:text-[#F0F0F0] truncate">{task.name}</p>
+                    <p className="text-xs text-faint dark:text-[#555]">{task.date ? fmt.day(task.date) : ''}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {diff !== null && activeType === T.MOCK && (
+                      <span className={`text-xs font-semibold flex items-center gap-0.5
+                        ${diff>0 ? 'text-emerald-500' : diff<0 ? 'text-red-400' : 'text-faint dark:text-[#555]'}`}>
+                        {diff>0 ? <IcArrowUp size={11}/> : diff<0 ? <IcArrowDown size={11}/> : <IcMinus size={11}/>}
+                        {Math.abs(diff)}
+                      </span>
+                    )}
+                    <span className="text-sm font-semibold text-ink dark:text-[#F0F0F0]">
+                      {task.score}<span className="text-xs text-faint dark:text-[#555]">/{task.maxScore}</span>
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+
+      const ChartPlaceholder = () => (
+        <div className="py-8 text-center">
+          <div className="h-28 w-full mb-4 rounded-xl bg-surface dark:bg-[#252525] flex items-end justify-around px-4 pb-3 opacity-40">
+            {[40,65,50,80,55,70,45,75].map((h,i) => (
+              <div key={i} className="w-5 rounded-t-md bg-[#D0D0D0] dark:bg-[#444]" style={{height:`${h}%`}}/>
+            ))}
+          </div>
+          <p className="text-sm text-faint dark:text-[#555]">Нет данных по этой категории</p>
+        </div>
+      );
+
+      const ChartBlock = ({ height = 160 }) => (
+        <div style={{height}} className="w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            {activeType === T.HW ? (
+              <LineChart data={data}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)"/>
+                <XAxis dataKey="i" axisLine={false} tickLine={false} tick={{fill:'#ADADAD',fontSize:10,fontWeight:600}}/>
+                <Tooltip content={<Tip/>}/>
+                <Line type="monotone" dataKey="score" stroke={color} strokeWidth={2}
+                  dot={{fill:color,r:3,strokeWidth:0}} activeDot={{r:5,fill:color}}/>
+              </LineChart>
+            ) : (
+              <BarChart data={data} barSize={28}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)"/>
+                <XAxis dataKey="i" axisLine={false} tickLine={false} tick={{fill:'#ADADAD',fontSize:10,fontWeight:600}}/>
+                <Tooltip content={<Tip/>} cursor={{fill:'transparent'}}/>
+                <Bar dataKey="score" radius={[6,6,0,0]} onClick={d=>setSelectedTask(d.task)} className="cursor-pointer">
+                  {data.map((_,i) => <Cell key={i} fill={color} fillOpacity={0.85}/>)}
+                </Bar>
+              </BarChart>
+            )}
+          </ResponsiveContainer>
+        </div>
+      );
+
+      return (
+        <div className="space-y-4">
+          <div>
+            <h1 className="text-2xl font-semibold text-ink dark:text-[#F0F0F0]">Статистика</h1>
+          </div>
+
+          <PillTabs tabs={T_ORDER.map(t => ({ value:t, label:T_LABEL[t] }))} active={activeType} onChange={setActiveType}/>
+
+          <Card>
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <SectionLabel>Категория</SectionLabel>
+                <p className="text-xl font-semibold text-ink dark:text-[#F0F0F0] mt-1">{T_LABEL[activeType]}</p>
+              </div>
+              {filtered.length > 0 && (
+                <div className="text-right">
+                  <SectionLabel>Средний</SectionLabel>
+                  <p className="text-2xl font-semibold text-ink dark:text-[#F0F0F0] mt-1">{avg}</p>
+                </div>
+              )}
+            </div>
+            {filtered.length === 0 ? <ChartPlaceholder/> : (
+              <>
+                <div className="mb-4"><ChartBlock height={144}/></div>
+                <TaskList maxH={256}/>
+              </>
+            )}
+          </Card>
+
+          {selectedTask && <TaskModal task={selectedTask} courseName={course.name} onClose={()=>setSelectedTask(null)}/>}
+        </div>
+      );
+    };
+
+    // ─── History Page ─────────────────────────────────────────────────────────
+    const History = ({ course, tasks }) => {
+      const [selectedTask, setSelectedTask] = useState(null);
+      const [typeFilter, setTypeFilter] = useState('ALL');
+
+      const allTabs = [{ value:'ALL', label:'Все' }, ...T_ORDER.map(t => ({ value:t, label:T_LABEL[t] }))];
+      const shown = tasks
+        .filter(t => t.courseId===course.id && (typeFilter==='ALL' || t.type===typeFilter))
+        .sort((a,b) => new Date(b.date)-new Date(a.date));
+
+      return (
+        <div className="space-y-4">
+          <div>
+            <h1 className="text-2xl font-semibold text-ink dark:text-[#F0F0F0]">История</h1>
+          </div>
+
+          <PillTabs tabs={allTabs} active={typeFilter} onChange={setTypeFilter}/>
+
+          {shown.length === 0 ? (
+            <div className="py-16 text-center text-faint dark:text-[#555] text-sm">Нет проверенных работ</div>
+          ) : (
+            <div className="bg-white dark:bg-[#1C1C1C] rounded-2xl overflow-hidden">
+              {shown.map((task, idx) => (
+                <div key={task.id} onClick={() => setSelectedTask(task)}
+                  className={`flex items-center justify-between gap-4 px-5 py-4 cursor-pointer active:opacity-60 transition-opacity
+                    ${idx < shown.length-1 ? 'border-b border-[#F5F5F5] dark:border-[#242424]' : ''}`}>
+                  <div className="flex-1 min-w-0">
+                    <SectionLabel>{T_LABEL[task.type]}</SectionLabel>
+                    <p className="text-sm font-semibold text-ink dark:text-[#F0F0F0] truncate mt-0.5">{task.name}</p>
+                    <p className="text-xs text-faint dark:text-[#555] mt-0.5">{task.date ? fmt.day(task.date) : ''}</p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    {task.score !== null && task.score !== undefined ? (
+                      <>
+                        <span className="text-xl font-semibold text-ink dark:text-[#F0F0F0]">{task.score}</span>
+                        <span className="text-sm text-faint dark:text-[#444]">/{task.maxScore}</span>
+                      </>
+                    ) : (
+                      <span className="text-sm font-semibold text-emerald-500">Зачёт</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {selectedTask && <TaskModal task={selectedTask} courseName={course.name} onClose={()=>setSelectedTask(null)}/>}
+        </div>
+      );
+    };
+
+    // ─── Mobile Schedule Page ─────────────────────────────────────────────────
+    const MobileSchedulePage = ({ events, onBack }) => {
+      const [monthKey, setMonthKey] = useState('');
+
+      const byMonth = useMemo(() => {
+        const map = {};
+        events.forEach(e => {
+          const d = new Date(e.startsAt);
+          const k = `${d.getFullYear()}-${d.getMonth()}`;
+          if (!map[k]) map[k] = { key:k, label: fmt.monthYear(e.startsAt), items:[] };
+          map[k].items.push(e);
+        });
+        return Object.values(map);
+      }, [events]);
+
+      useEffect(() => {
+        if (!byMonth.length) return;
+        const now = new Date();
+        const cur = byMonth.find(g => g.items.some(e => new Date(e.startsAt) >= now));
+        setMonthKey((cur || byMonth[0]).key);
+      }, []);
+
+      const today = new Date(); today.setHours(0,0,0,0);
+      const getStatus = (startsAt) => {
+        const d = new Date(startsAt); d.setHours(0,0,0,0);
+        const diff = Math.round((d - today) / 86400000);
+        return diff < 0 ? 'past' : diff === 0 ? 'today' : 'future';
+      };
+      const active = byMonth.find(g => g.key === monthKey) || byMonth[0];
+
+      return (
+        <div className="flex flex-col flex-1 min-h-0 bg-surface dark:bg-[#111111]">
+          <div className="px-4 pt-12 pb-4 shrink-0">
+            <button onClick={onBack} className="flex items-center gap-1 text-sm font-medium text-muted dark:text-[#888] mb-3">
+              <IcChevLeft size={15}/>Назад
+            </button>
+            <h1 className="text-2xl font-semibold text-ink dark:text-[#F0F0F0]">Расписание</h1>
+            <p className="text-sm text-faint dark:text-[#555] mt-0.5">
+              Темы и даты занятий курса
+            </p>
+          </div>
+
+          <div className="px-4 pb-3 overflow-x-auto no-scrollbar shrink-0">
+            <div className="flex gap-2 w-max">
+              {byMonth.map(g => (
+                <button key={g.key} onClick={() => setMonthKey(g.key)}
+                  className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-200
+                    ${g.key === monthKey
+                      ? 'bg-ink text-white dark:bg-[#F0F0F0] dark:text-ink'
+                      : 'bg-white dark:bg-[#1C1C1C] text-muted dark:text-[#888]'}`}>
+                  {g.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-8">
+            {!active ? (
+              <p className="text-sm text-faint dark:text-[#555] py-4">Расписание не заполнено</p>
+            ) : (
+              <div className="bg-white dark:bg-[#1C1C1C] rounded-2xl overflow-hidden">
+                {active.items.map((item, idx, arr) => {
+                  const status = getStatus(item.startsAt);
+                  const start  = new Date(item.startsAt);
+                  const isPast  = status === 'past';
+                  const isToday = status === 'today';
+                  return (
+                    <div key={item.id}
+                      className={`grid grid-cols-[52px_1fr] gap-3 px-4 py-3.5
+                        ${idx < arr.length-1 ? 'border-b border-[#F5F5F5] dark:border-[#242424]' : ''}
+                        ${isToday ? 'bg-[#F5F5F5] dark:bg-[#252525]' : ''}`}>
+                      <div className="text-center">
+                        <p className={`text-xl font-semibold leading-none ${isPast ? 'text-faint dark:text-[#444]' : 'text-ink dark:text-[#F0F0F0]'}`}>
+                          {start.getDate()}
+                        </p>
+                        <p className={`text-[10px] font-medium uppercase tracking-wide mt-0.5 ${isPast ? 'text-[#D0D0D0] dark:text-[#3A3A3A]' : 'text-[#8E8E93] dark:text-[#636366]'}`}>
+                          {fmt.monthShort(item.startsAt)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className={`text-sm font-semibold leading-snug ${isPast ? 'text-faint dark:text-[#444]' : 'text-ink dark:text-[#F0F0F0]'}`}>
+                          {isToday ? '· ' : ''}{item.topic}
+                        </p>
+                        <p className={`text-xs mt-0.5 ${isPast ? 'text-[#D0D0D0] dark:text-[#3A3A3A]' : 'text-faint dark:text-[#555]'}`}>
+                          {isPast ? 'прошедшее · ' : isToday ? 'сегодня · ' : ''}занятие
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    // ─── Deadlines Page ───────────────────────────────────────────────────────
+    const DeadlinesPage = ({ deadlines, courses, onBack }) => {
+      const today = new Date(); today.setHours(0,0,0,0);
+
+      const getCourse = id => courses.find(c => c.id === id);
+      const getDays = dueDate => {
+        const d = new Date(dueDate); d.setHours(0,0,0,0);
+        return Math.round((d - today) / 86400000);
+      };
+      const fmt24 = d => new Date(d).toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
+
+      const pending = deadlines.filter(d => !d.submitted).sort((a,b) => new Date(a.dueDate)-new Date(b.dueDate));
+      const done    = deadlines.filter(d => d.submitted);
+
+      const overdue  = pending.filter(d => getDays(d.dueDate) < 0);
+      const urgent   = pending.filter(d => { const n = getDays(d.dueDate); return n >= 0 && n <= 1; });
+      const thisWeek = pending.filter(d => { const n = getDays(d.dueDate); return n >= 2 && n <= 7; });
+      const later    = pending.filter(d => getDays(d.dueDate) > 7);
+
+      const DeadlineItem = ({ item, accent }) => {
+        const days = getDays(item.dueDate);
+        const course = getCourse(item.courseId);
+        const daysLabel = days < 0 ? `просрочено на ${Math.abs(days)} дн.`
+          : days === 0 ? 'сегодня'
+          : days === 1 ? 'завтра'
+          : `через ${days} дн.`;
+        return (
+          <div className="flex items-start gap-3 px-5 py-4 border-b border-[#F5F5F5] dark:border-[#242424] last:border-0">
+            <div className={`w-0.5 self-stretch rounded-full shrink-0 mt-1 ${accent}`}/>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-ink dark:text-[#F0F0F0] leading-snug">{item.title}</p>
+              {course && <p className="text-xs text-muted dark:text-[#888] mt-0.5">{course.name}</p>}
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs text-faint dark:text-[#555]">{fmt.day(item.dueDate)} · {fmt24(item.dueDate)}</span>
+                <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${
+                  days < 0 ? 'bg-red-50 dark:bg-red-900/20 text-red-500'
+                  : days <= 1 ? 'bg-[#F5F5F5] dark:bg-[#252525] text-ink dark:text-[#F0F0F0]'
+                  : 'bg-[#F5F5F5] dark:bg-[#252525] text-muted dark:text-[#888]'
+                }`}>{daysLabel}</span>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const Section = ({ label, items, accent }) => items.length === 0 ? null : (
+        <div className="mb-3">
+          <div className="px-5 pb-2"><SectionLabel>{label}</SectionLabel></div>
+          <div className="bg-white dark:bg-[#1C1C1C] rounded-2xl overflow-hidden">
+            {items.map(item => <DeadlineItem key={item.id} item={item} accent={accent}/>)}
+          </div>
+        </div>
+      );
+
+      return (
+        <div className="flex flex-col flex-1 min-h-0 bg-surface dark:bg-[#111111]">
+          <div className="px-5 shrink-0" style={{paddingTop:'max(env(safe-area-inset-top), 44px)', paddingBottom:'16px'}}>
+            <button onClick={onBack} className="flex items-center gap-1 text-sm font-medium text-muted dark:text-[#888] mb-3">
+              <IcChevLeft size={15}/>Назад
+            </button>
+            <h1 className="text-2xl font-semibold text-ink dark:text-[#F0F0F0]">Все дедлайны</h1>
+            <p className="text-sm text-faint dark:text-[#555] mt-0.5">Задания по всем курсам</p>
+          </div>
+
+          <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-8">
+            {overdue.length === 0 && urgent.length === 0 && thisWeek.length === 0 && later.length === 0 && done.length === 0 ? (
+              <p className="text-sm text-faint dark:text-[#555] py-8 text-center">Нет активных дедлайнов</p>
+            ) : (
+              <>
+                <Section label="Просрочено" items={overdue}  accent="bg-red-400"/>
+                <Section label="Срочно"     items={urgent}   accent="bg-[#1A1A1A] dark:bg-[#E0E0E0]"/>
+                <Section label="На этой неделе" items={thisWeek} accent="bg-[#C0C0C0] dark:bg-[#555]"/>
+                <Section label="Позже"      items={later}    accent="bg-[#D8D8D8] dark:bg-[#3A3A3A]"/>
+                {done.length > 0 && (
+                  <div className="mb-3 opacity-50">
+                    <div className="px-5 pb-2"><SectionLabel>Сдано</SectionLabel></div>
+                    <div className="bg-white dark:bg-[#1C1C1C] rounded-2xl overflow-hidden">
+                      {done.map(item => <DeadlineItem key={item.id} item={item} accent="bg-[#D8D8D8] dark:bg-[#3A3A3A]"/>)}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    // ─── Mobile Bottom Nav ────────────────────────────────────────────────────
+    const MobileNav = ({ page, setPage }) => {
+      const nav = [
+        { id:Page.HISTORY, label:'История',   Icon:IcBook  },
+        { id:Page.HOME,    label:'Главная',    Icon:IcHome  },
+        { id:Page.STATS,   label:'Статистика', Icon:IcChart },
+      ];
+      return (
+        <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pointer-events-none" style={{paddingBottom:'max(env(safe-area-inset-bottom), 16px)'}}>
+          <div className="pointer-events-auto flex items-center gap-1.5 px-2 py-2 bg-white dark:bg-[#1C1C1C] rounded-2xl mx-4" style={{backdropFilter:'blur(20px)', boxShadow:'0 4px 32px rgba(0,0,0,0.14)'}}>
+            {nav.map(({ id, label, Icon }) => (
+              <button key={id} onClick={() => setPage(id)}
+                className={`flex flex-col items-center justify-center gap-1 rounded-xl transition-all duration-200 py-3
+                  ${page===id
+                    ? 'bg-ink dark:bg-[#F0F0F0] text-white dark:text-ink'
+                    : 'text-[#BBBBBB] dark:text-[#555]'}`}
+                style={{width:'76px'}}>
+                <Icon size={21}/>
+                <span className="text-[9px] font-semibold leading-none">{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    // ─── Loading Screen ───────────────────────────────────────────────────────
+    const LoadingScreen = () => (
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 rounded-2xl bg-accent flex items-center justify-center mx-auto">
+            <IcBook size={20} color="white" stroke={2}/>
+          </div>
+          <p className="text-sm text-faint">Загрузка...</p>
+        </div>
+      </div>
+    );
+
+    // ─── Email Auth Screen ────────────────────────────────────────────────────
+    const EmailAuthScreen = ({ onSuccess, errorMsg, setError }) => {
+      const [email, setEmail] = useState('');
+      const [loading, setLoading] = useState(false);
+
+      const submit = async () => {
+        const trimmed = email.trim();
+        if (!trimmed) return;
+        setLoading(true);
+        try {
+          const res = await api('/auth/email/', {
+            method: 'POST',
+            body: JSON.stringify({ email: trimmed }),
+          });
+          const data = await res.json();
+          if (data.status === 'authorized') {
+            await onSuccess();
+          } else {
+            setError(data.message || 'Email не найден. Проверьте правильность.');
+          }
+        } catch {
+          setError('Ошибка соединения с сервером');
+        }
+        setLoading(false);
+      };
+
+      return (
+        <div className="min-h-screen bg-surface flex items-center justify-center p-4">
+          <div className="w-full max-w-[360px]">
+            <div className="bg-white rounded-3xl p-8 shadow-sm">
+              <h1 className="text-2xl font-bold text-ink mb-2">Кружок Станкевича</h1>
+              <p className="text-sm text-faint mb-6">Введите email, который вы указали при записи на курс</p>
+              <input
+                type="email"
+                value={email}
+                onChange={e => { setEmail(e.target.value); setError(''); }}
+                onKeyDown={e => e.key === 'Enter' && submit()}
+                placeholder="your@email.com"
+                autoFocus
+                className="w-full px-4 py-3 rounded-xl border border-line bg-surface text-ink text-sm outline-none focus:border-accent transition-colors mb-2"
+                style={{fontFamily:'inherit'}}
+              />
+              {errorMsg && <p className="text-xs text-red-500 mb-3">{errorMsg}</p>}
+              <button
+                onClick={submit}
+                disabled={loading || !email.trim()}
+                className="w-full py-3 rounded-xl bg-ink text-white text-sm font-semibold disabled:opacity-40 transition-opacity mt-1"
+              >
+                {loading ? 'Проверяем...' : 'Войти'}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ─── App ──────────────────────────────────────────────────────────────────
+    const App = () => {
+      // ── Все хуки объявляем до любых ранних return (правило React) ────────────
+      const [authState,   setAuthState]   = useState('loading'); // loading | need_email | authorized
+      const [authError,   setAuthError]   = useState('');
+      const [appData,     setAppData]     = useState(null);
+      const [page,        setPage]        = useState(Page.HOME);
+      const [course,      setCourse]      = useState(null);
+      const [isDark,      setIsDark]      = useState(false);
+      const [studentName, setStudentName] = useState('');
+      const [editingName, setEditingName] = useState(false);
+      const [nameInput,   setNameInput]   = useState('');
+      const [showLogout,  setShowLogout]  = useState(false);
+
+      useEffect(() => { initAuth(); }, []);
+
+      // Сбрасываем sub-страницы при смене курса
+      useEffect(() => {
+        if (course && (page === Page.SCHEDULE || page === Page.DEADLINES)) {
+          setPage(Page.HOME);
+        }
+      }, [course?.id]);
+
+      // ── Загрузка данных ───────────────────────────────────────────────────────
+      const loadData = async () => {
+        try {
+          const [meRes, coursesRes, gradesRes, scheduleRes, deadlinesRes] = await Promise.all([
+            api('/api/me/'),
+            api('/api/courses/'),
+            api('/api/grades/'),
+            api('/api/schedule/'),
+            api('/api/deadlines/'),
+          ]);
+
+          if (!meRes.ok) {
+            setAuthState('need_email');
+            return;
+          }
+
+          const me                  = await meRes.json();
+          const { courses }         = await coursesRes.json();
+          const { grades }          = await gradesRes.json();
+          const { schedule }        = await scheduleRes.json();
+          const { deadlines: dlRaw} = await deadlinesRes.json();
+
+          // Grades → формат компонентов
+          const tasks = grades.map(g => ({
+            id:             g.id,
+            courseId:       g.course_id,
+            type:           g.type,        // уже 'HW'/'MOCK'/'ESSAY'/'PROJECT'
+            name:           g.name,
+            date:           g.date || '',
+            score:          g.score,
+            maxScore:       g.max_score,
+          }));
+
+          // Schedule → группировка по course_id для быстрого доступа
+          const scheduleMap = {};
+          schedule.forEach(e => {
+            if (!scheduleMap[e.course_id]) scheduleMap[e.course_id] = [];
+            scheduleMap[e.course_id].push({
+              id:          e.id,
+              topic:       e.topic,
+              startsAt:    e.starts_at,
+              durationMin: e.duration_minutes,
+            });
+          });
+
+          // Deadlines → camelCase
+          const deadlines = dlRaw.map(d => ({
+            id:        d.id,
+            courseId:  d.course_id,
+            title:     d.title,
+            dueDate:   d.due_date,
+            submitted: d.submitted,
+          }));
+
+          setAppData({ me, courses, tasks, scheduleMap, deadlines });
+          setStudentName(me.name);
+          setNameInput(me.name);
+          if (courses.length > 0) setCourse(courses[0]);
+          setAuthState('authorized');
+        } catch {
+          setAuthState('need_email');
+        }
+      };
+
+      // ── Инициализация авторизации ─────────────────────────────────────────────
+      const initAuth = async () => {
+        // 1. Telegram Mini App — initData
+        if (window.Telegram?.WebApp?.initData) {
+          try {
+            const res  = await api('/auth/telegram/', {
+              method: 'POST',
+              body:   JSON.stringify({ init_data: window.Telegram.WebApp.initData }),
+            });
+            const json = await res.json();
+            if (json.status === 'authorized') { await loadData(); return; }
+            if (json.status === 'need_link')  { setAuthState('need_email'); return; }
+          } catch {}
+        }
+
+        // 2. Проверяем существующую сессию
+        try {
+          const meRes = await api('/api/me/');
+          if (meRes.ok) { await loadData(); return; }
+        } catch {}
+
+        // 3. Нужна авторизация по email
+        setAuthState('need_email');
+      };
+
+      // ── Сохранение имени ─────────────────────────────────────────────────────
+      const saveName = async (newName) => {
+        const name = newName.trim() || studentName;
+        setStudentName(name);
+        setEditingName(false);
+        try {
+          await api('/api/update-name/', {
+            method: 'POST',
+            body:   JSON.stringify({ name }),
+          });
+        } catch {}
+      };
+
+      // ── Auth screens ──────────────────────────────────────────────────────────
+      if (authState === 'loading')    return <LoadingScreen/>;
+      if (authState === 'need_email') return (
+        <EmailAuthScreen
+          onSuccess={loadData}
+          errorMsg={authError}
+          setError={setAuthError}
+        />
+      );
+      if (!appData || !course)        return <LoadingScreen/>;
+
+      // ── Данные для текущего курса ─────────────────────────────────────────────
+      const events = (appData.scheduleMap[course.id] || []).sort((a,b) => new Date(a.startsAt)-new Date(b.startsAt));
+
+      return (
+        <div className={isDark ? 'dark' : ''}>
+          <div className="min-h-screen bg-surface dark:bg-[#111111] text-ink dark:text-[#F0F0F0] transition-colors duration-200">
+
+            <div className="flex justify-center min-h-screen bg-[#E0E0E0] dark:bg-[#0A0A0A]">
+              <div className="w-full max-w-[390px] min-h-screen bg-surface dark:bg-[#111111] relative flex flex-col shadow-2xl">
+
+                {page === Page.SCHEDULE ? (
+                  <MobileSchedulePage events={events} onBack={() => setPage(Page.HOME)}/>
+                ) : page === Page.DEADLINES ? (
+                  <DeadlinesPage deadlines={appData.deadlines} courses={appData.courses} onBack={() => setPage(Page.HOME)}/>
+                ) : (
+                  <>
+                    {/* ── Шапка ────────────────────────────────────── */}
+                    {page === Page.HOME ? (
+                      <div className="px-5 shrink-0" style={{paddingTop:'max(env(safe-area-inset-top), 44px)', paddingBottom:'20px'}}>
+                        {/* Строка: иконка + название + тёмная тема */}
+                        <div className="flex items-center justify-between mb-5">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center shrink-0">
+                              <IcBook size={16} color="white" stroke={2}/>
+                            </div>
+                            <span className="text-[15px] font-bold text-ink dark:text-[#F0F0F0] tracking-tight">Кружок Станкевича</span>
+                          </div>
+                          <button onClick={() => setIsDark(!isDark)}
+                            className="w-8 h-8 rounded-full bg-white dark:bg-[#252525] flex items-center justify-center text-muted dark:text-[#888]">
+                            {isDark ? <IcSun size={16}/> : <IcMoon size={16}/>}
+                          </button>
+                        </div>
+                        {/* Имя + email */}
+                        <div className="mb-4">
+                          {editingName ? (
+                            <input autoFocus value={nameInput}
+                              onChange={e => setNameInput(e.target.value)}
+                              onBlur={() => saveName(nameInput)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter')  saveName(nameInput);
+                                if (e.key === 'Escape') { setNameInput(studentName); setEditingName(false); }
+                              }}
+                              className="text-[26px] font-bold text-ink dark:text-[#F0F0F0] bg-transparent outline-none w-full leading-tight block"
+                              style={{caretColor:'#007AFF', border:'none', padding:0, fontFamily:'inherit'}}
+                            />
+                          ) : (
+                            <button onClick={() => { setNameInput(studentName); setEditingName(true); }}
+                              className="flex items-center gap-2 text-left w-full">
+                              <h1 className="text-[26px] font-bold text-ink dark:text-[#F0F0F0] leading-tight">{studentName}</h1>
+                              <IcPencil size={14} className="text-[#CCCCCC] dark:text-[#555] shrink-0 mt-0.5"/>
+                            </button>
+                          )}
+                          <div className="relative mt-1">
+                            <button onClick={() => setShowLogout(v => !v)}
+                              className="text-sm text-faint dark:text-[#555] hover:opacity-70 transition-opacity">
+                              {appData.me.email}
+                            </button>
+                            {showLogout && (
+                              <>
+                                <div className="fixed inset-0 z-[9]" onClick={() => setShowLogout(false)}/>
+                                <div className="absolute left-0 top-full mt-1.5 z-10 bg-white dark:bg-[#2A2A2A] rounded-2xl overflow-hidden"
+                                  style={{boxShadow:'0 4px 24px rgba(0,0,0,0.12)'}}>
+                                  <button onClick={() => { window.location.href = '/auth/logout/'; }}
+                                    className="block px-4 py-3 text-sm text-red-400 hover:bg-surface dark:hover:bg-[#333] transition-colors whitespace-nowrap w-full text-left">
+                                    Выйти из аккаунта
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        {/* Курсы */}
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                          {appData.courses.map(c => (
+                            <button key={c.id} onClick={() => setCourse(c)}
+                              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all
+                                ${c.id === course.id
+                                  ? 'bg-ink text-white dark:bg-[#F0F0F0] dark:text-ink'
+                                  : 'bg-white dark:bg-[#252525] text-muted dark:text-[#888]'}`}>
+                              {c.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      /* ── Мини-бар для Stats/History ─────────────── */
+                      <div className="px-5 flex items-center justify-between shrink-0"
+                        style={{paddingTop:'max(env(safe-area-inset-top), 44px)', paddingBottom:'8px'}}>
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center shrink-0">
+                            <IcBook size={16} color="white" stroke={2}/>
+                          </div>
+                          <span className="text-[15px] font-bold text-ink dark:text-[#F0F0F0] tracking-tight">Кружок Станкевича</span>
+                        </div>
+                        <button onClick={() => setIsDark(!isDark)}
+                          className="w-8 h-8 rounded-full bg-white dark:bg-[#252525] flex items-center justify-center text-muted dark:text-[#888]">
+                          {isDark ? <IcSun size={16}/> : <IcMoon size={16}/>}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* ── Контент ────────────────────────────────────── */}
+                    <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-32 pt-4">
+                      {page === Page.HOME    && <Home    course={course} tasks={appData.tasks} events={events} deadlines={appData.deadlines} onSchedule={() => setPage(Page.SCHEDULE)} onDeadlines={() => setPage(Page.DEADLINES)}/>}
+                      {page === Page.STATS   && <Stats   course={course} tasks={appData.tasks}/>}
+                      {page === Page.HISTORY && <History course={course} tasks={appData.tasks}/>}
+                    </div>
+
+                    <MobileNav page={page} setPage={setPage}/>
+                  </>
+                )}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App/>);
+  </script>
+</body>
+</html>
