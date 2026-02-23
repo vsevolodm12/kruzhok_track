@@ -67,11 +67,11 @@ POSTGRES_PASSWORD = os.getenv('POSTGRES_PASSWORD', 'postgres')
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'stankevich_db',
-        'USER': 'postgres',
+        'NAME': os.getenv('DB_NAME', 'stankevich_db'),
+        'USER': os.getenv('DB_USER', 'postgres'),
         'PASSWORD': POSTGRES_PASSWORD,
-        'HOST': 'db',  # имя сервиса в docker-compose
-        'PORT': '5432',
+        'HOST': os.getenv('DB_HOST', 'db'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
 
