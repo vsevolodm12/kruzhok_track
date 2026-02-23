@@ -57,15 +57,7 @@ if [ ! -f .env ]; then
   # Генерируем SECRET_KEY прямо здесь
   SECRET=$(python3 -c "import secrets,string; print(''.join(secrets.choice(string.ascii_letters+string.digits+'!@#\$%^&*') for _ in range(50)))")
 
-  cat > .env << EOF
-SECRET_KEY=$SECRET
-DEBUG=False
-ALLOWED_HOSTS=kruzhoktrack.ru,www.kruzhoktrack.ru
-POSTGRES_PASSWORD=ЗАМЕНИ_НА_НАДЁЖНЫЙ_ПАРОЛЬ
-TELEGRAM_BOT_TOKEN=ЗАМЕНИ_НА_ТОКЕН_ОТ_BOTFATHER
-GOOGLE_SHEETS_SPREADSHEET_ID=
-GOOGLE_SERVICE_ACCOUNT_FILE=credentials/service-account.json
-EOF
+  printf 'SECRET_KEY=%s\nDEBUG=False\nALLOWED_HOSTS=kruzhoktrack.ru,www.kruzhoktrack.ru\nPOSTGRES_PASSWORD=ЗАМЕНИ_НА_НАДЁЖНЫЙ_ПАРОЛЬ\nTELEGRAM_BOT_TOKEN=ЗАМЕНИ_НА_ТОКЕН_ОТ_BOTFATHER\n' "$SECRET" > .env
   ok "Файл .env создан (SECRET_KEY уже заполнен)"
 else
   warn ".env уже существует — не трогаю"
