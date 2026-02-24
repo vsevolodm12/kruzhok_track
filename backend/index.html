@@ -169,8 +169,15 @@
       );
     };
 
+    // ─── Flame Icon (SVG, no emoji) ───────────────────────────────────────────
+    const FlameIcon = ({ size = 14, color = '#F97316' }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+        <path d="M17.66 11.2c-.23-.3-.51-.56-.77-.82-.67-.6-1.43-1.03-2.07-1.66C13.33 7.26 13 4.85 13.95 3c-.95.23-1.78.75-2.49 1.32C8.87 6.4 7.85 10.07 9.07 13.22c.04.1.08.2.08.33 0 .22-.15.42-.35.5-.23.1-.47.04-.66-.12a.6.6 0 0 1-.15-.17C6.87 12.33 6.69 10.28 7.45 8.64 5.78 10 4.87 12.3 5 14.47c.06.5.12 1 .29 1.5.14.6.41 1.2.71 1.73C7.08 19.43 8.95 20.67 10.96 20.92c2.14.27 4.43-.12 6.07-1.6 1.83-1.66 2.47-4.32 1.53-6.6l-.13-.26c-.21-.46-.77-1.26-.77-1.26z"/>
+      </svg>
+    );
+
     // ─── Home Page ────────────────────────────────────────────────────────────
-    const Home = ({ course, tasks, events, deadlines, onSchedule, onDeadlines }) => {
+    const Home = ({ course, tasks, events, deadlines, streak, onSchedule, onDeadlines }) => {
       const [selectedTask, setSelectedTask] = useState(null);
       const courseTasks = tasks.filter(t => t.courseId === course.id);
       const tasksWithScore = courseTasks.filter(t => t.score !== null && t.score !== undefined);
@@ -199,14 +206,21 @@
           {/* Активность */}
           <Card>
             <SectionLabel>Активность</SectionLabel>
-            <div className="grid grid-cols-2 gap-4 mt-3">
-              <div>
+            <div className="flex justify-between items-start mt-4">
+              <div className="flex flex-col items-center">
                 <span className="text-4xl font-semibold text-ink dark:text-[#DEDEDE]">{courseTasks.length}</span>
-                <span className="block text-xs text-faint dark:text-[#555] mt-1 uppercase tracking-wider">Сдано</span>
+                <span className="text-xs text-faint dark:text-[#555] mt-1 uppercase tracking-wider">Сдано</span>
               </div>
-              <div>
+              <div className="flex flex-col items-center">
                 <span className="text-4xl font-semibold text-ink dark:text-[#DEDEDE]">{avg}%</span>
-                <span className="block text-xs text-faint dark:text-[#555] mt-1 uppercase tracking-wider">Средний балл</span>
+                <span className="text-xs text-faint dark:text-[#555] mt-1 uppercase tracking-wider">Средний балл</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-4xl font-semibold text-ink dark:text-[#DEDEDE]">{streak}</span>
+                <div className="flex items-center gap-1 mt-1">
+                  <FlameIcon size={11}/>
+                  <span className="text-xs text-faint dark:text-[#555] uppercase tracking-wider">Стрик</span>
+                </div>
               </div>
             </div>
           </Card>
@@ -1033,7 +1047,7 @@
 
                     {/* ── Контент ────────────────────────────────────── */}
                     <div className="flex-1 overflow-y-auto no-scrollbar pb-32 pt-4">
-                      {page === Page.HOME    && <Home    course={course} tasks={appData.tasks} events={events} deadlines={appData.deadlines} onSchedule={() => setPage(Page.SCHEDULE)} onDeadlines={() => setPage(Page.DEADLINES)}/>}
+                      {page === Page.HOME    && <Home    course={course} tasks={appData.tasks} events={events} deadlines={appData.deadlines} streak={appData.me.streak || 0} onSchedule={() => setPage(Page.SCHEDULE)} onDeadlines={() => setPage(Page.DEADLINES)}/>}
                       {page === Page.STATS   && <Stats   course={course} tasks={appData.tasks}/>}
                       {page === Page.HISTORY && <History course={course} tasks={appData.tasks}/>}
                     </div>

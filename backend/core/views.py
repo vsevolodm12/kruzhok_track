@@ -367,10 +367,29 @@ def api_me(request):
     if not student:
         return JsonResponse({'error': 'Not authorized'}, status=401)
 
+    # Calculate streak: consecutive calendar days with grade submissions
+    import datetime
+    grades_dates = list(
+        Grade.objects.filter(student=student)
+        .order_by('-created_at')
+        .values_list('created_at', flat=True)
+    )
+    streak = 0
+    if grades_dates:
+        now = timezone.now()
+        last = grades_dates[0]
+        if (now - last).total_seconds() <= 86400:
+            days = {g.date() for g in grades_dates}
+            check = now.date()
+            while check in days:
+                streak += 1
+                check -= datetime.timedelta(days=1)
+
     return JsonResponse({
         'id': student.id,
         'name': student.name,
         'email': student.email,
+        'streak': streak,
     })
 
 
