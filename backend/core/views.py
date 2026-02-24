@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import httpx
 from django.conf import settings
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
@@ -598,6 +599,56 @@ def update_name(request):
     student.save(update_fields=['name'])
 
     return JsonResponse({'status': 'ok', 'name': student.name})
+
+
+# ===========================================
+# Helpers
+# ===========================================
+
+@csrf_exempt
+def bot_webhook(request):
+    """Telegram Bot webhook — обрабатывает входящие сообщения."""
+    if request.method != 'POST':
+        return JsonResponse({'ok': True})
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'ok': True})
+
+    message = data.get('message', {})
+    text = message.get('text', '')
+    chat_id = message.get('chat', {}).get('id')
+    first_name = message.get('from', {}).get('first_name', 'друг')
+
+    if not chat_id:
+        return JsonResponse({'ok': True})
+
+    if text.startswith('/start'):
+        welcome = (
+            f"Привет, {first_name}! 👋🏻\n\n"
+            f"Здесь ты можешь отслеживать оценки, расписание занятий и дедлайны по своим курсам.\n\n"
+            f"Открой приложение — всё уже там 👇"
+        )
+        reply_markup = {
+            "inline_keyboard": [[{
+                "text": "📚 Открыть Кружок",
+                "web_app": {"url": "https://kruzhoktrack.ru"},
+            }]]
+        }
+        bot_token = settings.TELEGRAM_BOT_TOKEN
+        if bot_token:
+            try:
+                with httpx.Client() as client:
+                    client.post(
+                        f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                        json={"chat_id": chat_id, "text": welcome, "reply_markup": reply_markup},
+                        timeout=10.0,
+                    )
+            except Exception as e:
+                logger.error(f"Bot webhook send error: {e}")
+
+    return JsonResponse({'ok': True})
 
 
 # ===========================================

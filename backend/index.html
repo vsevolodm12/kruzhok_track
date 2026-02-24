@@ -33,7 +33,7 @@
       theme: {
         extend: {
           colors: {
-            ink:    '#1A1A1A',
+            ink:    '#2D2D2D',
             muted:  '#6B6B6B',
             faint:  '#ADADAD',
             line:   '#EBEBEB',
@@ -149,19 +149,19 @@
               <IcX size={15}/>
             </button>
             <SectionLabel>{T_LABEL_FULL[task.type]}</SectionLabel>
-            <h3 className="text-xl font-semibold text-ink dark:text-[#F0F0F0] mt-1 mb-1 leading-snug pr-8">{task.name}</h3>
+            <h3 className="text-xl font-semibold text-ink dark:text-[#DEDEDE] mt-1 mb-1 leading-snug pr-8">{task.name}</h3>
             <p className="text-sm text-faint dark:text-[#555] mb-6 pb-5 border-b border-line dark:border-[#2A2A2A]">{courseName}</p>
             <div className="flex justify-between items-end">
               <div>
                 <SectionLabel>Оценка</SectionLabel>
                 <div className="flex items-baseline gap-1 mt-1">
-                  <span className="text-5xl font-semibold text-ink dark:text-[#F0F0F0]">{task.score !== null && task.score !== undefined ? task.score : '—'}</span>
+                  <span className="text-5xl font-semibold text-ink dark:text-[#DEDEDE]">{task.score !== null && task.score !== undefined ? task.score : '—'}</span>
                   <span className="text-xl text-faint dark:text-[#444]">/{task.maxScore}</span>
                 </div>
               </div>
               <div className="text-right">
                 <SectionLabel>Дата</SectionLabel>
-                <p className="text-base font-semibold text-ink dark:text-[#F0F0F0] mt-1">{task.date ? fmt.day(task.date) : '—'}</p>
+                <p className="text-base font-semibold text-ink dark:text-[#DEDEDE] mt-1">{task.date ? fmt.day(task.date) : '—'}</p>
               </div>
             </div>
           </div>
@@ -201,11 +201,11 @@
             <SectionLabel>Активность</SectionLabel>
             <div className="grid grid-cols-2 gap-4 mt-3">
               <div>
-                <span className="text-4xl font-semibold text-ink dark:text-[#F0F0F0]">{courseTasks.length}</span>
+                <span className="text-4xl font-semibold text-ink dark:text-[#DEDEDE]">{courseTasks.length}</span>
                 <span className="block text-xs text-faint dark:text-[#555] mt-1 uppercase tracking-wider">Сдано</span>
               </div>
               <div>
-                <span className="text-4xl font-semibold text-ink dark:text-[#F0F0F0]">{avg}%</span>
+                <span className="text-4xl font-semibold text-ink dark:text-[#DEDEDE]">{avg}%</span>
                 <span className="block text-xs text-faint dark:text-[#555] mt-1 uppercase tracking-wider">Средний балл</span>
               </div>
             </div>
@@ -231,11 +231,11 @@
                   const isToday = diff === 0;
                   return (
                     <div key={item.id}
-                      className={`grid grid-cols-[44px_1fr] gap-3 py-3
+                      className={`grid grid-cols-[44px_1fr] gap-3 py-3 items-center
                         ${idx < upcoming.length-1 ? 'border-b border-[#F2F2F2] dark:border-[#242424]' : ''}
                         ${isToday ? 'rounded-xl -mx-2 px-2 bg-[#EEF2FF] dark:bg-[#1A1A2E]' : ''}`}>
                       <div className="text-center">
-                        <p className={`text-lg font-semibold leading-none ${isToday ? 'text-accent' : 'text-ink dark:text-[#F0F0F0]'}`}>
+                        <p className={`text-lg font-semibold leading-none ${isToday ? 'text-accent' : 'text-ink dark:text-[#DEDEDE]'}`}>
                           {start.getDate()}
                         </p>
                         <p className="text-[9px] font-semibold uppercase tracking-wide text-faint dark:text-[#555] mt-0.5">
@@ -243,7 +243,7 @@
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm font-semibold leading-snug text-ink dark:text-[#F0F0F0]">
+                        <p className="text-sm font-semibold leading-snug text-ink dark:text-[#DEDEDE]">
                           {item.topic}
                         </p>
                         <p className={`text-xs mt-0.5 ${isToday ? 'text-accent' : 'text-faint dark:text-[#555]'}`}>
@@ -276,7 +276,7 @@
                     <div key={item.id} className="flex items-center gap-3">
                       <div className={`w-0.5 h-10 rounded-full shrink-0 ${barCls}`}/>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-ink dark:text-[#F0F0F0] truncate">{item.title}</p>
+                        <p className="text-sm font-semibold text-ink dark:text-[#DEDEDE] truncate">{item.title}</p>
                         <p className="text-xs text-faint dark:text-[#555]">{fmt.day(item.dueDate)} · {daysText}</p>
                       </div>
                     </div>
@@ -309,7 +309,7 @@
         const t = payload[0].payload.task;
         return (
           <div className="bg-white dark:bg-[#1C1C1C] rounded-xl p-3 text-xs">
-            <p className="font-semibold text-ink dark:text-[#F0F0F0] mb-1 max-w-[160px] leading-snug">{t.name}</p>
+            <p className="font-semibold text-ink dark:text-[#DEDEDE] mb-1 max-w-[160px] leading-snug">{t.name}</p>
             <p style={{color}}>Балл: {t.score} / {t.maxScore}</p>
             <p className="text-faint dark:text-[#555] mt-0.5">{t.date ? fmt.day(t.date) : ''}</p>
           </div>
@@ -329,7 +329,7 @@
                   className={`flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-surface dark:hover:bg-[#222] transition-colors
                     ${idx < arr.length-1 ? 'border-b border-[#F5F5F5] dark:border-[#242424]' : ''}`}>
                   <div className="flex-1 min-w-0 pr-4">
-                    <p className="text-sm font-semibold text-ink dark:text-[#F0F0F0] truncate">{task.name}</p>
+                    <p className="text-sm font-semibold text-ink dark:text-[#DEDEDE] truncate">{task.name}</p>
                     <p className="text-xs text-faint dark:text-[#555]">{task.date ? fmt.day(task.date) : ''}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -340,7 +340,7 @@
                         {Math.abs(diff)}
                       </span>
                     )}
-                    <span className="text-sm font-semibold text-ink dark:text-[#F0F0F0]">
+                    <span className="text-sm font-semibold text-ink dark:text-[#DEDEDE]">
                       {task.score}<span className="text-xs text-faint dark:text-[#555]">/{task.maxScore}</span>
                     </span>
                   </div>
@@ -390,7 +390,7 @@
       return (
         <div className="space-y-4">
           <div className="px-4">
-            <h1 className="text-2xl font-semibold text-ink dark:text-[#F0F0F0]">Статистика</h1>
+            <h1 className="text-2xl font-semibold text-ink dark:text-[#DEDEDE]">Статистика</h1>
           </div>
 
           <div className="px-4"><PillTabs tabs={T_ORDER.map(t => ({ value:t, label:T_LABEL[t] }))} active={activeType} onChange={setActiveType}/></div>
@@ -399,12 +399,12 @@
             <div className="flex items-center justify-between mb-5">
               <div>
                 <SectionLabel>Категория</SectionLabel>
-                <p className="text-xl font-semibold text-ink dark:text-[#F0F0F0] mt-1">{T_LABEL[activeType]}</p>
+                <p className="text-xl font-semibold text-ink dark:text-[#DEDEDE] mt-1">{T_LABEL[activeType]}</p>
               </div>
               {filtered.length > 0 && (
                 <div className="text-right">
                   <SectionLabel>Средний</SectionLabel>
-                  <p className="text-2xl font-semibold text-ink dark:text-[#F0F0F0] mt-1">{avg}</p>
+                  <p className="text-2xl font-semibold text-ink dark:text-[#DEDEDE] mt-1">{avg}</p>
                 </div>
               )}
             </div>
@@ -434,7 +434,7 @@
       return (
         <div className="space-y-4">
           <div className="px-4">
-            <h1 className="text-2xl font-semibold text-ink dark:text-[#F0F0F0]">История</h1>
+            <h1 className="text-2xl font-semibold text-ink dark:text-[#DEDEDE]">История</h1>
           </div>
 
           <div className="px-4"><PillTabs tabs={allTabs} active={typeFilter} onChange={setTypeFilter}/></div>
@@ -449,13 +449,13 @@
                     ${idx < shown.length-1 ? 'border-b border-[#F5F5F5] dark:border-[#242424]' : ''}`}>
                   <div className="flex-1 min-w-0">
                     <SectionLabel>{T_LABEL[task.type]}</SectionLabel>
-                    <p className="text-sm font-semibold text-ink dark:text-[#F0F0F0] truncate mt-0.5">{task.name}</p>
+                    <p className="text-sm font-semibold text-ink dark:text-[#DEDEDE] truncate mt-0.5">{task.name}</p>
                     <p className="text-xs text-faint dark:text-[#555] mt-0.5">{task.date ? fmt.day(task.date) : ''}</p>
                   </div>
                   <div className="shrink-0 text-right">
                     {task.score !== null && task.score !== undefined ? (
                       <>
-                        <span className="text-xl font-semibold text-ink dark:text-[#F0F0F0]">{task.score}</span>
+                        <span className="text-xl font-semibold text-ink dark:text-[#DEDEDE]">{task.score}</span>
                         <span className="text-sm text-faint dark:text-[#444]">/{task.maxScore}</span>
                       </>
                     ) : (
@@ -512,7 +512,8 @@
             <button onClick={onBack} className="flex items-center gap-1 text-sm font-medium text-muted dark:text-[#888] mb-3">
               <IcChevLeft size={15}/>Назад
             </button>
-            <h1 className="text-2xl font-semibold text-ink dark:text-[#F0F0F0]">Расписание</h1>
+            <h1 className="text-2xl font-semibold text-ink dark:text-[#DEDEDE]">Расписание</h1>
+            {activeCourse && <p className="text-sm text-muted dark:text-[#888] mt-0.5 truncate">{activeCourse.name}</p>}
           </div>
 
           {courses.length > 1 && (
@@ -547,7 +548,7 @@
 
           <div className="flex-1 overflow-y-auto no-scrollbar pb-8">
             {!active ? (
-              <p className="text-sm text-faint dark:text-[#555] py-4">Расписание не заполнено</p>
+              <p className="text-sm text-faint dark:text-[#555] py-16 text-center">Расписание не заполнено</p>
             ) : (
               <div className="bg-white dark:bg-[#1C1C1C] overflow-hidden">
                 {active.items.map((item, idx, arr) => {
@@ -557,11 +558,11 @@
                   const isToday = status === 'today';
                   return (
                     <div key={item.id}
-                      className={`grid grid-cols-[52px_1fr] gap-3 px-4 py-3.5
+                      className={`grid grid-cols-[52px_1fr] gap-3 px-4 py-3.5 items-center
                         ${idx < arr.length-1 ? 'border-b border-[#F5F5F5] dark:border-[#242424]' : ''}
                         ${isToday ? 'bg-[#F5F5F5] dark:bg-[#252525]' : ''}`}>
                       <div className="text-center">
-                        <p className={`text-xl font-semibold leading-none ${isPast ? 'text-faint dark:text-[#444]' : 'text-ink dark:text-[#F0F0F0]'}`}>
+                        <p className={`text-xl font-semibold leading-none ${isPast ? 'text-faint dark:text-[#444]' : 'text-ink dark:text-[#DEDEDE]'}`}>
                           {start.getDate()}
                         </p>
                         <p className={`text-[10px] font-medium uppercase tracking-wide mt-0.5 ${isPast ? 'text-[#D0D0D0] dark:text-[#3A3A3A]' : 'text-[#8E8E93] dark:text-[#636366]'}`}>
@@ -569,7 +570,7 @@
                         </p>
                       </div>
                       <div>
-                        <p className={`text-sm font-semibold leading-snug ${isPast ? 'text-faint dark:text-[#444]' : 'text-ink dark:text-[#F0F0F0]'}`}>
+                        <p className={`text-sm font-semibold leading-snug ${isPast ? 'text-faint dark:text-[#444]' : 'text-ink dark:text-[#DEDEDE]'}`}>
                           {isToday ? '· ' : ''}{item.topic}
                         </p>
                         <p className={`text-xs mt-0.5 ${isPast ? 'text-[#D0D0D0] dark:text-[#3A3A3A]' : 'text-faint dark:text-[#555]'}`}>
@@ -588,17 +589,20 @@
 
     // ─── Deadlines Page ───────────────────────────────────────────────────────
     const DeadlinesPage = ({ deadlines, courses, onBack }) => {
+      const defaultCourse = courses.find(c => deadlines.some(d => d.courseId === c.id)) || courses[0];
+      const [activeCourse, setActiveCourse] = useState(defaultCourse);
       const today = new Date(); today.setHours(0,0,0,0);
 
-      const getCourse = id => courses.find(c => c.id === id);
+      const courseDls = activeCourse ? deadlines.filter(d => d.courseId === activeCourse.id) : [];
+
       const getDays = dueDate => {
         const d = new Date(dueDate); d.setHours(0,0,0,0);
         return Math.round((d - today) / 86400000);
       };
       const fmt24 = d => new Date(d).toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
 
-      const pending = deadlines.filter(d => !d.submitted).sort((a,b) => new Date(a.dueDate)-new Date(b.dueDate));
-      const done    = deadlines.filter(d => d.submitted);
+      const pending = courseDls.filter(d => !d.submitted).sort((a,b) => new Date(a.dueDate)-new Date(b.dueDate));
+      const done    = courseDls.filter(d => d.submitted);
 
       const overdue  = pending.filter(d => getDays(d.dueDate) < 0);
       const urgent   = pending.filter(d => { const n = getDays(d.dueDate); return n >= 0 && n <= 1; });
@@ -607,7 +611,7 @@
 
       const DeadlineItem = ({ item, accent }) => {
         const days = getDays(item.dueDate);
-        const course = getCourse(item.courseId);
+        const course = courses.find(c => c.id === item.courseId);
         const daysLabel = days < 0 ? `просрочено на ${Math.abs(days)} дн.`
           : days === 0 ? 'сегодня'
           : days === 1 ? 'завтра'
@@ -616,13 +620,13 @@
           <div className="flex items-start gap-3 px-5 py-4 border-b border-[#F5F5F5] dark:border-[#242424] last:border-0">
             <div className={`w-0.5 self-stretch rounded-full shrink-0 mt-1 ${accent}`}/>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-ink dark:text-[#F0F0F0] leading-snug">{item.title}</p>
+              <p className="text-sm font-semibold text-ink dark:text-[#DEDEDE] leading-snug">{item.title}</p>
               {course && <p className="text-xs text-muted dark:text-[#888] mt-0.5">{course.name}</p>}
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-xs text-faint dark:text-[#555]">{fmt.day(item.dueDate)} · {fmt24(item.dueDate)}</span>
                 <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${
                   days < 0 ? 'bg-red-50 dark:bg-red-900/20 text-red-500'
-                  : days <= 1 ? 'bg-[#F5F5F5] dark:bg-[#252525] text-ink dark:text-[#F0F0F0]'
+                  : days <= 1 ? 'bg-[#F5F5F5] dark:bg-[#252525] text-ink dark:text-[#DEDEDE]'
                   : 'bg-[#F5F5F5] dark:bg-[#252525] text-muted dark:text-[#888]'
                 }`}>{daysLabel}</span>
               </div>
@@ -646,9 +650,24 @@
             <button onClick={onBack} className="flex items-center gap-1 text-sm font-medium text-muted dark:text-[#888] mb-3">
               <IcChevLeft size={15}/>Назад
             </button>
-            <h1 className="text-2xl font-semibold text-ink dark:text-[#F0F0F0]">Все дедлайны</h1>
-            <p className="text-sm text-faint dark:text-[#555] mt-0.5">Задания по всем курсам</p>
+            <h1 className="text-2xl font-semibold text-ink dark:text-[#DEDEDE]">Дедлайны</h1>
           </div>
+
+          {courses.length > 1 && (
+            <div className="px-4 pb-3 overflow-x-auto no-scrollbar shrink-0">
+              <div className="flex gap-2 w-max">
+                {courses.map(c => (
+                  <button key={c.id} onClick={() => setActiveCourse(c)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all max-w-[200px] truncate
+                      ${c.id === activeCourse?.id
+                        ? 'bg-ink text-white dark:bg-[#F0F0F0] dark:text-ink'
+                        : 'bg-white dark:bg-[#1C1C1C] text-muted dark:text-[#888]'}`}>
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex-1 overflow-y-auto no-scrollbar pb-8">
             {overdue.length === 0 && urgent.length === 0 && thisWeek.length === 0 && later.length === 0 && done.length === 0 ? (
@@ -677,22 +696,20 @@
     // ─── Mobile Bottom Nav ────────────────────────────────────────────────────
     const MobileNav = ({ page, setPage }) => {
       const nav = [
-        { id:Page.HISTORY, label:'История',   Icon:IcBook  },
-        { id:Page.HOME,    label:'Главная',    Icon:IcHome  },
-        { id:Page.STATS,   label:'Статистика', Icon:IcChart },
+        { id:Page.HISTORY, Icon:IcBook  },
+        { id:Page.HOME,    Icon:IcHome  },
+        { id:Page.STATS,   Icon:IcChart },
       ];
       return (
         <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pointer-events-none" style={{paddingBottom:'max(env(safe-area-inset-bottom), 16px)'}}>
-          <div className="pointer-events-auto flex items-center gap-1.5 px-2 py-2 bg-white dark:bg-[#1C1C1C] rounded-2xl mx-4" style={{backdropFilter:'blur(20px)', boxShadow:'0 4px 32px rgba(0,0,0,0.14)'}}>
-            {nav.map(({ id, label, Icon }) => (
+          <div className="pointer-events-auto flex items-center gap-1 px-1.5 py-1.5 bg-white dark:bg-[#1C1C1C] rounded-[28px] mx-4" style={{backdropFilter:'blur(20px)', boxShadow:'0 4px 32px rgba(0,0,0,0.14)'}}>
+            {nav.map(({ id, Icon }) => (
               <button key={id} onClick={() => setPage(id)}
-                className={`flex flex-col items-center justify-center gap-1 rounded-xl transition-all duration-200 py-3
+                className={`flex items-center justify-center rounded-[20px] transition-all duration-200 p-3.5
                   ${page===id
                     ? 'bg-ink dark:bg-[#F0F0F0] text-white dark:text-ink'
-                    : 'text-[#BBBBBB] dark:text-[#555]'}`}
-                style={{width:'76px'}}>
-                <Icon size={21}/>
-                <span className="text-[9px] font-semibold leading-none">{label}</span>
+                    : 'text-[#BBBBBB] dark:text-[#555]'}`}>
+                <Icon size={22}/>
               </button>
             ))}
           </div>
@@ -848,7 +865,13 @@
           setAppData({ me, courses, tasks, scheduleMap, deadlines });
           setStudentName(me.name);
           setNameInput(me.name);
-          if (courses.length > 0) setCourse(courses[0]);
+          if (courses.length > 0) {
+            const now = new Date();
+            const withUpcoming = courses.find(c =>
+              (scheduleMap[c.id] || []).some(e => new Date(e.startsAt) > now)
+            );
+            setCourse(withUpcoming || courses[0]);
+          }
           setAuthState('authorized');
         } catch {
           setAuthState('need_email');
@@ -909,7 +932,7 @@
 
       return (
         <div className={isDark ? 'dark' : ''}>
-          <div className="min-h-[100dvh] bg-surface dark:bg-[#111111] text-ink dark:text-[#F0F0F0] transition-colors duration-200">
+          <div className="min-h-[100dvh] bg-surface dark:bg-[#111111] text-ink dark:text-[#DEDEDE] transition-colors duration-200">
 
             <div className="flex justify-center min-h-[100dvh] bg-surface dark:bg-[#111111]">
               <div className="w-full max-w-[390px] min-h-[100dvh] bg-surface dark:bg-[#111111] relative flex flex-col">
@@ -930,7 +953,7 @@
                             <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center shrink-0">
                               <IcBook size={16} color="white" stroke={2}/>
                             </div>
-                            <span className="text-[15px] font-bold text-ink dark:text-[#F0F0F0] tracking-tight">Кружок Станкевича</span>
+                            <span className="text-[15px] font-bold text-ink dark:text-[#DEDEDE] tracking-tight">Кружок Станкевича</span>
                           </div>
                           <button onClick={() => setIsDark(!isDark)}
                             className="w-8 h-8 rounded-full bg-white dark:bg-[#252525] flex items-center justify-center text-muted dark:text-[#888]">
@@ -947,13 +970,13 @@
                                 if (e.key === 'Enter')  saveName(nameInput);
                                 if (e.key === 'Escape') { setNameInput(studentName); setEditingName(false); }
                               }}
-                              className="text-[26px] font-bold text-ink dark:text-[#F0F0F0] bg-transparent outline-none w-full leading-tight block"
+                              className="text-[26px] font-bold text-ink dark:text-[#DEDEDE] bg-transparent outline-none w-full leading-tight block"
                               style={{caretColor:'#007AFF', border:'none', padding:0, fontFamily:'inherit'}}
                             />
                           ) : (
                             <button onClick={() => { setNameInput(studentName); setEditingName(true); }}
                               className="flex items-center gap-2 text-left w-full">
-                              <h1 className="text-[26px] font-bold text-ink dark:text-[#F0F0F0] leading-tight">{studentName}</h1>
+                              <h1 className="text-[26px] font-bold text-ink dark:text-[#DEDEDE] leading-tight">{studentName}</h1>
                               <IcPencil size={14} className="text-[#CCCCCC] dark:text-[#555] shrink-0 mt-0.5"/>
                             </button>
                           )}
@@ -999,7 +1022,7 @@
                           <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center shrink-0">
                             <IcBook size={16} color="white" stroke={2}/>
                           </div>
-                          <span className="text-[15px] font-bold text-ink dark:text-[#F0F0F0] tracking-tight">Кружок Станкевича</span>
+                          <span className="text-[15px] font-bold text-ink dark:text-[#DEDEDE] tracking-tight">Кружок Станкевича</span>
                         </div>
                         <button onClick={() => setIsDark(!isDark)}
                           className="w-8 h-8 rounded-full bg-white dark:bg-[#252525] flex items-center justify-center text-muted dark:text-[#888]">
