@@ -2,46 +2,44 @@ import hashlib
 import logging
 from datetime import datetime, timezone as dt_timezone
 from django.db import IntegrityError
-from core.models import Student, Course, Enrollment, Task, Grade, CourseWebhookSecret, WebhookLog
+from core.models import Student, Course, Enrollment, Task, Grade, WebhookLog
 from core.services.telegram import TelegramNotificationService
 
 logger = logging.getLogger(__name__)
 
 
-def _get_secret_for_course(course_id: str | None) -> str | None:
-    """
-    Возвращает секретный ключ для курса из БД (CourseWebhookSecret).
-    """
-    if not course_id:
-        return None
-
-    try:
-        course = Course.objects.get(zenclass_id=course_id)
-        return course.webhook_secret.secret_key
-    except (Course.DoesNotExist, CourseWebhookSecret.DoesNotExist):
-        return None
+TASK_EVENTS = {'lesson_task_accepted', 'lesson_task_submitted_for_review', 'access_to_course_expired'}
+ENROLLMENT_EVENTS = {'product_user_subscribed', 'payment_accepted'}
 
 
-def verify_webhook_signature(webhook_id: str, timestamp: int, received_hash: str, course_id: str | None = None) -> bool:
+def _get_secret_for_event(event_name: str) -> str | None:
+    """Возвращает глобальный секрет из settings в зависимости от типа события."""
+    from django.conf import settings
+    if event_name in TASK_EVENTS:
+        return settings.WEBHOOK_SECRET_TASKS or None
+    if event_name in ENROLLMENT_EVENTS:
+        return settings.WEBHOOK_SECRET_ENROLLMENT or None
+    return None
+
+
+def verify_webhook_signature(webhook_id: str, timestamp: int, received_hash: str, event_name: str) -> bool:
     """
     Проверяет подпись вебхука ZenClass.
-    Алгоритм: sha1(secret_key & id & timestamp) == hash
+    Алгоритм: sha1(secret & webhook_id & timestamp) == hash
 
-    Секрет берётся по course_id из БД.
-    Если курс не найден или секрет не настроен — вебхук отклоняется.
+    Секрет глобальный: WEBHOOK_SECRET_TASKS или WEBHOOK_SECRET_ENROLLMENT из .env.
     """
-    secret = _get_secret_for_course(course_id)
+    secret = _get_secret_for_event(event_name)
 
     if not secret:
-        logger.warning(f"Секрет не найден для курса {course_id} — вебхук отклонён. "
-                       f"Добавьте курс и секрет через Django Admin.")
+        logger.warning(f"Секрет не настроен для события '{event_name}' — проверьте .env")
         return False
 
     concatenated = f"{secret}&{webhook_id}&{timestamp}"
     calculated_hash = hashlib.sha1(concatenated.encode()).hexdigest()
 
     if calculated_hash != received_hash:
-        logger.warning(f"Невалидная подпись вебхука: expected={calculated_hash}, got={received_hash}")
+        logger.warning(f"Невалидная подпись: expected={calculated_hash}, got={received_hash}")
         return False
 
     return True
@@ -153,8 +151,8 @@ def process_task_accepted(payload: dict, timestamp: int) -> Grade | None:
     comment = payload.get('comment', '')
     task_result = payload.get('task_result', 'ok')
     report_link = payload.get('report_link', '')
-    tariff_id = payload.get('tariff_id')
-    tariff_name = payload.get('tariff_name', '')
+    tariff_id = payload.get('tarif_id')
+    tariff_name = payload.get('tarif_name', '')
 
     if not all([user_email, course_id, task_id]):
         logger.warning(f"Неполные данные вебхука: email={user_email}, course={course_id}, task={task_id}")
@@ -234,8 +232,8 @@ def process_task_submitted(payload: dict, timestamp: int) -> Grade | None:
     course_name = payload.get('course_name', 'Неизвестный курс')
     task_id = payload.get('task_id')
     task_name = payload.get('task_name', 'Задание')
-    tariff_id = payload.get('tariff_id')
-    tariff_name = payload.get('tariff_name', '')
+    tariff_id = payload.get('tarif_id')
+    tariff_name = payload.get('tarif_name', '')
 
     if not all([user_email, course_id, task_id]):
         return None
@@ -273,8 +271,8 @@ def process_user_subscribed(payload: dict) -> Enrollment | None:
     user_id = payload.get('user_id')
     product_id = payload.get('product_id')
     product_name = payload.get('product_name', 'Курс')
-    tariff_id = payload.get('tariff_id')
-    tariff_name = payload.get('tariff_name', '')
+    tariff_id = payload.get('tarif_id')
+    tariff_name = payload.get('tarif_name', '')
 
     if not all([user_email, product_id]):
         return None
@@ -304,8 +302,8 @@ def process_payment_accepted(payload: dict) -> Enrollment | None:
     user_id = payload.get('user_id')
     product_id = payload.get('product_id')
     product_name = payload.get('product_name', 'Курс')
-    tariff_id = payload.get('tariff_id')
-    tariff_name = payload.get('tariff_name', '')
+    tariff_id = payload.get('tarif_id')
+    tariff_name = payload.get('tarif_name', '')
 
     if not all([user_email, product_id]):
         return None

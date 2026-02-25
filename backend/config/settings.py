@@ -140,8 +140,10 @@ CORS_ALLOW_CREDENTIALS = True
 # ===========================================
 # ZenClass
 # ===========================================
-# Секретные ключи вебхуков хранятся в БД (CourseWebhookSecret),
-# по одному на каждый курс. Управление через Django Admin.
+# Глобальный секрет для вебхуков о проверке заданий (lesson_task_*)
+WEBHOOK_SECRET_TASKS = os.getenv('WEBHOOK_SECRET_TASKS', '')
+# Глобальный секрет для вебхуков о зачислении (product_user_subscribed, payment_accepted)
+WEBHOOK_SECRET_ENROLLMENT = os.getenv('WEBHOOK_SECRET_ENROLLMENT', '')
 
 # ===========================================
 # Telegram

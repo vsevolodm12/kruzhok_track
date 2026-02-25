@@ -16,7 +16,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 200M
 
   web:
     build: .
@@ -36,7 +36,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 300M
 
   nginx:
     image: nginx:alpine
@@ -54,7 +54,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 64M
+          memory: 32M
 
   certbot:
     image: certbot/certbot
@@ -65,7 +65,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 64M
+          memory: 32M
 
 volumes:
   postgres_data:

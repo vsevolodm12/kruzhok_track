@@ -5,6 +5,7 @@
   <title>Кружок Станкевича</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
+  <link href="https://fonts.googleapis.com/css2?family=Neucha&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -735,9 +736,7 @@
     const LoadingScreen = () => (
       <div className="min-h-screen bg-surface flex items-center justify-center">
         <div className="text-center space-y-3">
-          <div className="w-10 h-10 rounded-2xl bg-accent flex items-center justify-center mx-auto">
-            <IcBook size={20} color="white" stroke={2}/>
-          </div>
+          <div className="w-10 h-10 flex items-center justify-center mx-auto"/>
           <p className="text-sm text-faint">Загрузка...</p>
         </div>
       </div>
@@ -799,6 +798,58 @@
       );
     };
 
+    // ─── Phrases ──────────────────────────────────────────────────────────────
+    const DAY_PHRASES = [
+      'Рубикон пройден',
+      'Время собирать земли 🌍',
+      'Veni, Vidi, Vici. 🏛️',
+      'Новая эра начинается сейчас ✨',
+      'Вставай, граф, тебя ждут великие дела!',
+      'Sapere Aude 📜',
+      'История — учительница жизни',
+      'Ad fontes!',
+      'Разделяй и властвуй',
+      'Критикуй источник, а не автора',
+      'Истина где-то в архивах',
+      'Finis coronat opus 👑',
+      'Карфаген разрушен ⚔️',
+      'Sic transit gloria mundi',
+      'Мир вашему дому',
+      'После нас хоть потоп 🌊',
+      'Эпоха великих открытий',
+      'Век Просвещения начинается 🕯️',
+      'Рассвет империи.',
+      'Время реформ.',
+    ];
+    const NIGHT_PHRASES = [
+      'Архивы не спят (и ты не спишь 🦉)',
+      'Ad astra per aspera 🌙',
+      'История пишется ночью',
+      'Тень веков удлиняется',
+    ];
+    const pickPhrase = () => {
+      const h = new Date().getHours();
+      const isNight = h >= 20;
+      const pool = isNight ? [...DAY_PHRASES, ...NIGHT_PHRASES] : [...DAY_PHRASES];
+      const key = 'kruzhok_phrase_queue';
+      let queue = [];
+      try { queue = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) {}
+      // Оставляем только фразы из текущего пула (ночные не попадают днём)
+      queue = queue.filter(p => pool.includes(p));
+      if (queue.length === 0) {
+        // Перемешиваем весь пул (Fisher-Yates)
+        const arr = [...pool];
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        queue = arr;
+      }
+      const phrase = queue.shift();
+      try { localStorage.setItem(key, JSON.stringify(queue)); } catch(e) {}
+      return phrase;
+    };
+
     // ─── App ──────────────────────────────────────────────────────────────────
     const App = () => {
       // ── Все хуки объявляем до любых ранних return (правило React) ────────────
@@ -812,6 +863,7 @@
       const [editingName, setEditingName] = useState(false);
       const [nameInput,   setNameInput]   = useState('');
       const [showLogout,  setShowLogout]  = useState(false);
+      const [phrase] = useState(pickPhrase);
 
       useEffect(() => { initAuth(); }, []);
 
@@ -959,23 +1011,17 @@
                   <>
                     {/* ── Шапка ────────────────────────────────────── */}
                     {page === Page.HOME ? (
-                      <div className="shrink-0" style={{paddingTop:'max(env(safe-area-inset-top), 44px)', paddingBottom:'20px'}}>
-                        <div className="px-5">
-                        {/* Строка: иконка + название + тёмная тема */}
-                        <div className="flex items-center justify-between mb-5">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center shrink-0">
-                              <IcBook size={16} color="white" stroke={2}/>
-                            </div>
-                            <span className="text-[15px] font-bold text-ink dark:text-[#DEDEDE] tracking-tight">Кружок Станкевича</span>
-                          </div>
+                      <div className="shrink-0 px-5" style={{paddingTop:'max(env(safe-area-inset-top), 44px)', paddingBottom:'16px'}}>
+                        {/* Цитата + тёмная тема */}
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-[16px] text-muted dark:text-[#666] italic leading-snug flex-1 pr-3">{phrase}</span>
                           <button onClick={() => setIsDark(!isDark)}
-                            className="w-8 h-8 rounded-full bg-white dark:bg-[#252525] flex items-center justify-center text-muted dark:text-[#888]">
+                            className="w-8 h-8 rounded-full bg-white dark:bg-[#252525] flex items-center justify-center text-muted dark:text-[#888] shrink-0">
                             {isDark ? <IcSun size={16}/> : <IcMoon size={16}/>}
                           </button>
                         </div>
                         {/* Имя + email */}
-                        <div className="mb-4">
+                        <div className="mb-3">
                           {editingName ? (
                             <input autoFocus value={nameInput}
                               onChange={e => setNameInput(e.target.value)}
@@ -1013,9 +1059,8 @@
                             )}
                           </div>
                         </div>
-                        </div>
                         {/* Курсы */}
-                        <div className="flex gap-2 overflow-x-auto no-scrollbar pl-5">
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5">
                           {appData.courses.map(c => (
                             <button key={c.id} onClick={() => setCourse(c)}
                               className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all max-w-[200px] truncate
@@ -1032,12 +1077,7 @@
                       /* ── Мини-бар для Stats/History ─────────────── */
                       <div className="px-5 flex items-center justify-between shrink-0"
                         style={{paddingTop:'max(env(safe-area-inset-top), 44px)', paddingBottom:'8px'}}>
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center shrink-0">
-                            <IcBook size={16} color="white" stroke={2}/>
-                          </div>
-                          <span className="text-[15px] font-bold text-ink dark:text-[#DEDEDE] tracking-tight">Кружок Станкевича</span>
-                        </div>
+                        <span className="text-[16px] text-muted dark:text-[#666] italic">{phrase}</span>
                         <button onClick={() => setIsDark(!isDark)}
                           className="w-8 h-8 rounded-full bg-white dark:bg-[#252525] flex items-center justify-center text-muted dark:text-[#888]">
                           {isDark ? <IcSun size={16}/> : <IcMoon size={16}/>}
