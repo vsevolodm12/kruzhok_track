@@ -143,6 +143,16 @@ class TelegramNotificationService:
             logger.error(f"Ошибка отправки сообщения в Telegram: {e}")
             return False
 
+    def notify_lesson_reminder(self, telegram_id: int, course_name: str, lesson_title: str,
+                               zoom_url: str = '', zoom_passcode: str = '') -> bool:
+        """Отправляет напоминание о начале занятия."""
+        text = f"🔔 <b>Занятие начинается!</b>\n\n📚 {course_name}\n📝 {lesson_title}"
+        if zoom_url:
+            text += f"\n\n<a href='{zoom_url}'>🎥 Подключиться к Zoom</a>"
+        if zoom_passcode:
+            text += f"\nКод доступа: <code>{zoom_passcode}</code>"
+        return self.send_message_sync(telegram_id, text)
+
     def notify_grade(self, telegram_id: int, course_name: str, task_name: str, score: int | None, max_score: int) -> bool:
         """Отправляет уведомление о проверенном задании."""
         if score is not None:

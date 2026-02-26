@@ -232,14 +232,19 @@ def process_task_accepted(payload: dict, timestamp: int) -> Grade | None:
     # Отправляем уведомление в Telegram
     if student.telegram_id:
         notification_service = TelegramNotificationService()
-        notification_service.notify_grade(
+        ok = notification_service.notify_grade(
             telegram_id=student.telegram_id,
             course_name=course_name,
             task_name=task_name,
             score=score,
             max_score=max_score
         )
-        logger.info(f"Отправлено уведомление: {student.telegram_id}")
+        if ok:
+            logger.info(f"Telegram-уведомление отправлено: tg_id={student.telegram_id}")
+        else:
+            logger.warning(f"Telegram-уведомление НЕ отправлено: tg_id={student.telegram_id}")
+    else:
+        logger.info(f"Telegram-уведомление пропущено (нет telegram_id): {student.email}")
 
     return grade
 

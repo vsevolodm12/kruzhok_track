@@ -46,6 +46,9 @@ class CourseAdmin(admin.ModelAdmin):
                 'Найти: Настройки курса → Встраивание → ID из прямой ссылки.'
             ),
         }),
+        ('Zoom', {
+            'fields': ('zoom_url', 'zoom_passcode'),
+        }),
     )
 
     @admin.display(boolean=True, description='Секрет')

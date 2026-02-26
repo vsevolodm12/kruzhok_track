@@ -92,6 +92,8 @@ class Course(models.Model):
         related_name='enrolled_courses'
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    zoom_url = models.URLField(blank=True, default='', verbose_name='Ссылка Zoom')
+    zoom_passcode = models.CharField(max_length=50, blank=True, default='', verbose_name='Код доступа Zoom')
 
     class Meta:
         verbose_name = 'Курс'
