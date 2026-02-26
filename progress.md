@@ -123,6 +123,49 @@ GOOGLE_SHEETS_SPREADSHEET_ID=12khQ9s3xUNH4iE7NQl3B-qGTmce9ghvwE7sSPYqkink
 
 ---
 
+## Изменения и ошибки (2026-02-26)
+
+### 1. Секреты вебхуков переделаны на per-course
+
+**Контекст:** ZenClass ограничивает количество HTTP-автоматизаций в одном окне, поэтому каждый курс настраивается отдельно. Для зачисления студентов (global automation) один секрет остаётся.
+
+**Изменена архитектура:**
+- **Раньше:** два глобальных секрета из `.env`: `WEBHOOK_SECRET_TASKS` и `WEBHOOK_SECRET_ENROLLMENT`
+- **Теперь:** `WEBHOOK_SECRET_TASKS` удалён. Для task-событий (`lesson_task_*`, `access_to_course_expired`) — секрет берётся из `CourseWebhookSecret` в БД по `course_id` из payload. Для enrollment-событий (`product_user_subscribed`, `payment_accepted`) — по-прежнему глобальный `WEBHOOK_SECRET_ENROLLMENT`.
+
+**Файлы:** `webhooks/services.py`, `webhooks/views.py`, `config/settings.py`
+
+**Как настраивать:** Admin → Core → Секреты вебхуков курсов → выбрать курс → вставить секрет из ZenClass (Автоматизации → HTTP-уведомление → поле «Секретный ключ»). Если секрет не добавлен — вебхук отклоняется с 403.
+
+---
+
+### 2. CourseWebhookSecret не отображался в Django Admin
+
+**Проблема:** Модель была зарегистрирована только как inline внутри CourseAdmin, но не как отдельный раздел. В главном меню Admin раздел «Секреты вебхуков курсов» отсутствовал.
+
+**Исправлено:** добавлен `@admin.register(CourseWebhookSecret)` в `core/admin.py` — теперь доступен как отдельный раздел Core.
+
+**Файл:** `core/admin.py`
+
+---
+
+### 3. Новые курсы (25/26) не создавались при enrollment-вебхуках
+
+**Проблема:** ZenClass присылал `product_user_subscribed` с `"user_email": null`. Функция `process_user_subscribed` делала `if not all([user_email, product_id]): return None` — и выходила не создав курс. В итоге "Интенсив к МОШ по истории 25/26" никогда не попал в БД, хотя вебхук был принят и залогирован.
+
+Это подтверждено запросом к WebhookLog: payload содержал `"user_email": null` и нормальный `product_id`.
+
+**Исправлено:** в `process_user_subscribed` и `process_payment_accepted` курс теперь создаётся всегда при наличии `product_id`. Студент и зачисление создаются только если есть email, иначе пишется warning в лог.
+
+**Файл:** `webhooks/services.py`
+
+**Доп. действие:** курс "Интенсив к МОШ по истории 25/26" создан вручную в БД командой `get_or_create`:
+```
+zenclass_id: 7dc97b81-9d45-4d95-9972-71a8c3d1da42
+```
+
+---
+
 ## Состояние сервера (2026-02-26)
 
 - **URL:** `https://kruzhoktrack.ru`
