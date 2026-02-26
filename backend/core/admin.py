@@ -46,6 +46,10 @@ class CourseAdmin(admin.ModelAdmin):
                 'Найти: Настройки курса → Встраивание → ID из прямой ссылки.'
             ),
         }),
+        ('Zoom-конференция', {
+            'fields': ('zoom_url', 'zoom_meeting_id', 'zoom_passcode', 'zoom_login', 'zoom_password'),
+            'description': 'Данные для подключения к Zoom. Студенты видят их в приложении.',
+        }),
     )
 
     @admin.display(boolean=True, description='Секрет')

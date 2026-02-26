@@ -416,6 +416,11 @@ def api_courses(request):
             'name': course.name,
             'status': enrollment.status,
             'grades_count': grades_count,
+            'zoom_url': course.zoom_url,
+            'zoom_meeting_id': course.zoom_meeting_id,
+            'zoom_passcode': course.zoom_passcode,
+            'zoom_login': course.zoom_login,
+            'zoom_password': course.zoom_password,
         })
 
     return JsonResponse({'courses': courses})

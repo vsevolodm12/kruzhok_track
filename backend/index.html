@@ -82,6 +82,10 @@
     const IcCalendar  = p => <Ic {...p}><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></Ic>;
     const IcChevLeft  = p => <Ic {...p}><path d="m15 18-6-6 6-6"/></Ic>;
     const IcPencil    = p => <Ic {...p}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></Ic>;
+    const IcVideo     = p => <Ic {...p}><path d="m22 8-6 4 6 4V8z"/><rect width="14" height="12" x="2" y="6" rx="2"/></Ic>;
+    const IcCopy      = p => <Ic {...p}><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></Ic>;
+    const IcCheck     = p => <Ic {...p}><path d="M20 6 9 17l-5-5"/></Ic>;
+    const IcChevRight = p => <Ic {...p}><path d="m9 18 6-6-6-6"/></Ic>;
 
     // ─── Constants ────────────────────────────────────────────────────────────
     const Page = { HOME: 'home', SCHEDULE: 'schedule', DEADLINES: 'deadlines', STATS: 'stats', HISTORY: 'history' };
@@ -170,6 +174,80 @@
       );
     };
 
+    // ─── Zoom Modal ───────────────────────────────────────────────────────────
+    const ZoomModal = ({ course, onClose }) => {
+      const [copied, setCopied] = useState(null);
+
+      const copy = (text, key) => {
+        navigator.clipboard.writeText(text).then(() => {
+          setCopied(key);
+          setTimeout(() => setCopied(null), 2000);
+        }).catch(() => {});
+      };
+
+      const rows = [
+        course.zoom_meeting_id && { label: 'Идентификатор конференции', value: course.zoom_meeting_id, key: 'id' },
+        course.zoom_passcode   && { label: 'Код доступа',               value: course.zoom_passcode,   key: 'code' },
+        course.zoom_login      && { label: 'Логин',                     value: course.zoom_login,      key: 'login' },
+        course.zoom_password   && { label: 'Пароль',                    value: course.zoom_password,   key: 'pass' },
+      ].filter(Boolean);
+
+      return (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center">
+          <div className="absolute inset-0 bg-black/40 dark:bg-black/70" onClick={onClose}/>
+          <div className="relative w-full max-w-[390px] bg-white dark:bg-[#1C1C1C] rounded-t-3xl shadow-2xl">
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-line dark:bg-[#333] rounded-full"/>
+            </div>
+            <div className="px-6 pb-10">
+              <button onClick={onClose}
+                className="absolute top-4 right-5 w-8 h-8 rounded-full bg-surface dark:bg-[#252525] flex items-center justify-center text-muted dark:text-[#888]">
+                <IcX size={15}/>
+              </button>
+              <SectionLabel>Zoom · {course.name}</SectionLabel>
+              <h3 className="text-xl font-semibold text-ink dark:text-[#DEDEDE] mt-1 mb-5">Данные для входа</h3>
+
+              {course.zoom_url && (
+                <a href={course.zoom_url} target="_blank" rel="noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold text-sm mb-3 active:opacity-80 transition-opacity text-white"
+                  style={{background:'#2D8CFF'}}>
+                  <IcVideo size={16}/>
+                  Подключиться к Zoom
+                </a>
+              )}
+
+              {course.zoom_url && (
+                <button onClick={() => copy(course.zoom_url, 'url')}
+                  className="flex items-center justify-between w-full py-3 px-4 bg-surface dark:bg-[#252525] rounded-xl mb-3">
+                  <span className="text-sm text-muted dark:text-[#888]">Скопировать ссылку</span>
+                  <span className={`text-xs font-semibold ${copied === 'url' ? 'text-green-500' : 'text-[#2D8CFF]'}`}>
+                    {copied === 'url' ? 'Скопировано!' : 'Копировать'}
+                  </span>
+                </button>
+              )}
+
+              {rows.length > 0 && (
+                <div className="bg-surface dark:bg-[#252525] rounded-2xl overflow-hidden divide-y divide-line dark:divide-[#2A2A2A]">
+                  {rows.map(row => (
+                    <button key={row.key} onClick={() => copy(row.value, row.key)}
+                      className="flex items-center justify-between w-full px-4 py-3.5 text-left">
+                      <div>
+                        <p className="text-[11px] text-faint dark:text-[#555] uppercase tracking-wide">{row.label}</p>
+                        <p className="text-sm font-semibold text-ink dark:text-[#DEDEDE] mt-0.5">{row.value}</p>
+                      </div>
+                      <span className={`text-xs font-semibold ml-3 shrink-0 ${copied === row.key ? 'text-green-500' : 'text-[#2D8CFF]'}`}>
+                        {copied === row.key ? 'Скопировано!' : 'Копировать'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
     // ─── Flame Icon (SVG, no emoji) ───────────────────────────────────────────
     const FlameIcon = ({ size = 14, color = '#F97316' }) => (
       <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
@@ -180,6 +258,7 @@
     // ─── Home Page ────────────────────────────────────────────────────────────
     const Home = ({ course, tasks, events, deadlines, streak, onSchedule, onDeadlines }) => {
       const [selectedTask, setSelectedTask] = useState(null);
+      const [showZoom, setShowZoom] = useState(false);
       const courseTasks = tasks.filter(t => t.courseId === course.id);
       const tasksWithScore = courseTasks.filter(t => t.score !== null && t.score !== undefined);
       const avg = tasksWithScore.length
@@ -225,6 +304,22 @@
               </div>
             </div>
           </Card>
+
+          {/* Zoom */}
+          {course.zoom_url && (
+            <Card onClick={() => setShowZoom(true)}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{background:'rgba(45,140,255,0.12)'}}>
+                  <IcVideo size={20} className="text-[#2D8CFF]" style={{color:'#2D8CFF'}}/>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-ink dark:text-[#DEDEDE]">Подключиться к занятию</p>
+                  <p className="text-xs text-faint dark:text-[#555] mt-0.5 truncate">Zoom {course.zoom_meeting_id ? `· ${course.zoom_meeting_id}` : ''}</p>
+                </div>
+                <IcChevRight size={16} className="text-muted dark:text-[#555] shrink-0"/>
+              </div>
+            </Card>
+          )}
 
           {/* Расписание */}
           <Card noPad>
@@ -302,6 +397,7 @@
           </Card>
 
           {selectedTask && <TaskModal task={selectedTask} courseName={course.name} onClose={() => setSelectedTask(null)}/>}
+          {showZoom && <ZoomModal course={course} onClose={() => setShowZoom(false)}/>}
         </div>
       );
     };

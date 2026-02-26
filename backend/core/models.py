@@ -93,6 +93,13 @@ class Course(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # Zoom-конференция
+    zoom_url = models.URLField(blank=True, default='', verbose_name='Ссылка Zoom')
+    zoom_meeting_id = models.CharField(max_length=50, blank=True, default='', verbose_name='ID конференции')
+    zoom_passcode = models.CharField(max_length=50, blank=True, default='', verbose_name='Код доступа')
+    zoom_login = models.CharField(max_length=255, blank=True, default='', verbose_name='Логин Zoom')
+    zoom_password = models.CharField(max_length=255, blank=True, default='', verbose_name='Пароль Zoom')
+
     class Meta:
         verbose_name = 'Курс'
         verbose_name_plural = 'Курсы'
