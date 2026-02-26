@@ -297,11 +297,17 @@ def process_user_subscribed(payload: dict) -> Enrollment | None:
     tariff_id = payload.get('tarif_id')
     tariff_name = payload.get('tarif_name', '')
 
-    if not all([user_email, product_id]):
+    if not product_id:
+        return None
+
+    # Создаём курс всегда, даже если email студента не пришёл
+    course = get_or_create_course(product_id, product_name)
+
+    if not user_email:
+        logger.warning(f"product_user_subscribed: email отсутствует, курс создан ({course.name}), зачисление пропущено")
         return None
 
     student = get_or_create_student(user_email, user_id)
-    course = get_or_create_course(product_id, product_name)
 
     enrollment, created = Enrollment.objects.update_or_create(
         student=student,
@@ -328,11 +334,17 @@ def process_payment_accepted(payload: dict) -> Enrollment | None:
     tariff_id = payload.get('tarif_id')
     tariff_name = payload.get('tarif_name', '')
 
-    if not all([user_email, product_id]):
+    if not product_id:
+        return None
+
+    # Создаём курс всегда, даже если email студента не пришёл
+    course = get_or_create_course(product_id, product_name)
+
+    if not user_email:
+        logger.warning(f"payment_accepted: email отсутствует, курс создан ({course.name}), зачисление пропущено")
         return None
 
     student = get_or_create_student(user_email, user_id)
-    course = get_or_create_course(product_id, product_name)
 
     enrollment, created = Enrollment.objects.update_or_create(
         student=student,
