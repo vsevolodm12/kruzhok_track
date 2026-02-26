@@ -12,24 +12,47 @@ TASK_EVENTS = {'lesson_task_accepted', 'lesson_task_submitted_for_review', 'acce
 ENROLLMENT_EVENTS = {'product_user_subscribed', 'payment_accepted'}
 
 
-def _get_secret_for_event(event_name: str) -> str | None:
-    """Возвращает глобальный секрет из settings в зависимости от типа события."""
+def _get_secret_for_event(event_name: str, payload: dict) -> str | None:
+    """
+    Возвращает секрет для верификации подписи вебхука.
+
+    - Enrollment-события (product_user_subscribed, payment_accepted):
+      глобальный WEBHOOK_SECRET_ENROLLMENT из .env — одна автоматизация на все курсы.
+    - Task-события (lesson_task_accepted, lesson_task_submitted_for_review, access_to_course_expired):
+      per-course секрет из CourseWebhookSecret в БД — каждый курс настраивается отдельно.
+    """
     from django.conf import settings
-    if event_name in TASK_EVENTS:
-        return settings.WEBHOOK_SECRET_TASKS or None
+    from core.models import CourseWebhookSecret
+
     if event_name in ENROLLMENT_EVENTS:
         return settings.WEBHOOK_SECRET_ENROLLMENT or None
+
+    if event_name in TASK_EVENTS:
+        course_id = payload.get('course_id')
+        if not course_id:
+            logger.warning(f"course_id отсутствует в payload для события '{event_name}'")
+            return None
+        try:
+            secret_obj = CourseWebhookSecret.objects.get(course__zenclass_id=course_id)
+            return secret_obj.secret_key
+        except CourseWebhookSecret.DoesNotExist:
+            logger.warning(
+                f"Секрет не настроен для курса {course_id} — добавьте через Admin → Core → Секреты вебхуков курсов"
+            )
+            return None
+
     return None
 
 
-def verify_webhook_signature(webhook_id: str, timestamp: int, received_hash: str, event_name: str) -> bool:
+def verify_webhook_signature(webhook_id: str, timestamp: int, received_hash: str, event_name: str, payload: dict | None = None) -> bool:
     """
     Проверяет подпись вебхука ZenClass.
     Алгоритм: sha1(secret & webhook_id & timestamp) == hash
 
-    Секрет глобальный: WEBHOOK_SECRET_TASKS или WEBHOOK_SECRET_ENROLLMENT из .env.
+    Для task-событий: секрет берётся из CourseWebhookSecret в БД по course_id из payload.
+    Для enrollment-событий: глобальный WEBHOOK_SECRET_ENROLLMENT из .env.
     """
-    secret = _get_secret_for_event(event_name)
+    secret = _get_secret_for_event(event_name, payload or {})
 
     if not secret:
         logger.warning(f"Секрет не настроен для события '{event_name}' — проверьте .env")

@@ -48,8 +48,8 @@ def zenclass_webhook(request):
         logger.warning("Отсутствуют обязательные поля")
         return JsonResponse({'error': 'Missing required fields'}, status=400)
 
-    # Проверка подписи по глобальному секрету из .env
-    if received_hash and not verify_webhook_signature(webhook_id, timestamp, received_hash, event_name):
+    # Проверка подписи: task-события — per-course секрет из БД, enrollment — глобальный из .env
+    if received_hash and not verify_webhook_signature(webhook_id, timestamp, received_hash, event_name, payload):
         return JsonResponse({'error': 'Invalid signature'}, status=403)
 
     # Атомарная проверка идемпотентности + логирование

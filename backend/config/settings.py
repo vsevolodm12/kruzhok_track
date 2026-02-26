@@ -140,9 +140,8 @@ CORS_ALLOW_CREDENTIALS = True
 # ===========================================
 # ZenClass
 # ===========================================
-# Глобальный секрет для вебхуков о проверке заданий (lesson_task_*)
-WEBHOOK_SECRET_TASKS = os.getenv('WEBHOOK_SECRET_TASKS', '')
 # Глобальный секрет для вебхуков о зачислении (product_user_subscribed, payment_accepted)
+# Секреты для lesson_task_* хранятся per-course в БД: Admin → Core → Секреты вебхуков курсов
 WEBHOOK_SECRET_ENROLLMENT = os.getenv('WEBHOOK_SECRET_ENROLLMENT', '')
 
 # ===========================================
