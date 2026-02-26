@@ -1,0 +1,225 @@
+# Инструкция по администрированию Кружок (kruzhoktrack.ru)
+
+## Доступы
+
+| Что | Адрес / данные |
+|---|---|
+| Сайт | https://kruzhoktrack.ru |
+| Django Admin | https://kruzhoktrack.ru/admin/ — `seva / 1712` |
+| VPS | `ssh -i ~/.ssh/id_ed25519_seva root@45.10.245.122` |
+| Проект на сервере | `/opt/kruzhok/backend/` |
+
+---
+
+## Частые задачи
+
+### Добавить расписание занятий для курса
+
+**Admin → Core → Расписание занятий → Добавить**
+
+Или быстро через курс: **Admin → Core → Курсы → [выбрать курс]** → прокрутить вниз до блока «Расписание занятий».
+
+Поля:
+- **Курс** — выбрать из списка
+- **Название** — тема занятия
+- **Дата и время** — дата + время начала (МСК, не UTC)
+- **Длительность** — в минутах (по умолчанию 90)
+
+---
+
+### Добавить дедлайн
+
+**Admin → Core → Дедлайны → Добавить**
+
+Или через курс: **Admin → Core → Курсы → [выбрать курс]** → блок «Дедлайны».
+
+Поля:
+- **Курс** — выбрать
+- **Название** — название домашки
+- **Срок сдачи** — дата и время дедлайна (МСК)
+- **Сдано** — галочка если студент уже сдал (обычно не трогать, это меняется вручную)
+
+---
+
+### Настроить вебхук для нового курса (lesson_task_accepted)
+
+Когда создаётся новый курс в ZenClass и нужно получать оценки студентов:
+
+**Шаг 1 — Убедиться что курс есть в БД**
+
+Admin → Core → Курсы → поиск по названию.
+Если нет — создать: **Добавить** → ввести название + `zenclass_id` (UUID из URL курса в ZenClass).
+
+> Как найти zenclass_id: зайти в ZenClass → Продукты → [курс] → URL вида `.../courses/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/edit/...`
+
+**Шаг 2 — Добавить секрет вебхука**
+
+Admin → Core → Секреты вебхуков курсов → Добавить:
+- Выбрать курс
+- Вставить секретный ключ из ZenClass (Автоматизации → HTTP-уведомление → поле «Секретный ключ»)
+
+**Шаг 3 — Настроить автоматизацию в ZenClass**
+
+ZenClass → Настройки автоматизации → Добавить правило:
+- Событие: `lesson_task_accepted`
+- URL: `https://kruzhoktrack.ru/webhook/zenclass/`
+- Секретный ключ: тот же что ввели в шаге 2
+
+> ⚠️ ZenClass ограничивает количество автоматизаций в одном окне — для каждого курса создаётся отдельная автоматизация со своим секретом.
+
+---
+
+### Зачислить студента на курс вручную
+
+**Admin → Core → Подписки на курсы → Добавить**
+
+- Студент — найти по email или имени
+- Курс — выбрать
+- Статус — `Активен`
+
+> Обычно это не нужно — зачисление происходит автоматически через вебхук `product_user_subscribed`.
+
+---
+
+### Найти студента и посмотреть его оценки
+
+**Admin → Core → Ученики** → поиск по email или имени → открыть запись → внизу видны связанные оценки.
+
+Или: **Admin → Core → Оценки** → фильтр по студенту/курсу.
+
+---
+
+### Посмотреть логи вебхуков
+
+**Admin → Core → Логи вебхуков** — все принятые вебхуки от ZenClass в хронологическом порядке.
+
+Здесь можно проверить:
+- Пришёл ли вебхук от конкретного студента
+- Что было в payload (разворачивается по клику)
+- Когда он был обработан
+
+---
+
+## Управление сервером
+
+### Зайти на сервер
+
+```bash
+ssh -i ~/.ssh/id_ed25519_seva root@45.10.245.122
+```
+
+### Перейти в папку проекта
+
+```bash
+cd /opt/kruzhok/backend
+```
+
+### Основные команды Docker
+
+```bash
+docker compose ps                    # статус контейнеров
+docker compose logs web              # последние логи Django
+docker compose logs web -f           # логи в реальном времени
+docker compose up -d --build         # пересборка и перезапуск
+docker compose down                  # остановка
+docker compose restart web           # перезапуск только Django (без пересборки)
+```
+
+### Задеплоить новую версию кода
+
+```bash
+# С ноутбука одной командой:
+ssh -i ~/.ssh/id_ed25519_seva root@45.10.245.122 \
+  "cd /opt/kruzhok/backend && git pull origin main && docker compose up -d --build"
+```
+
+### Импорт студентов из Google Sheets
+
+```bash
+# Зайти на сервер, затем:
+docker exec backend-web-1 python manage.py import_courses --dry-run  # проверка
+docker exec backend-web-1 python manage.py import_courses             # реальный импорт
+```
+
+### Выполнить произвольный Python-код в Django
+
+```bash
+docker exec backend-web-1 python -c "
+import django, os
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+django.setup()
+# ... ваш код ...
+"
+```
+
+---
+
+## Переменные окружения (.env)
+
+Файл: `/opt/kruzhok/backend/.env`
+
+| Переменная | Описание |
+|---|---|
+| `SECRET_KEY` | Django secret key |
+| `POSTGRES_PASSWORD` | Пароль БД |
+| `TELEGRAM_BOT_TOKEN` | Токен бота из BotFather |
+| `WEBHOOK_SECRET_ENROLLMENT` | Глобальный секрет для вебхуков зачисления (product_user_subscribed, payment_accepted) |
+| `GOOGLE_SERVICE_ACCOUNT_FILE` | Путь к JSON-ключу Google сервисного аккаунта |
+| `GOOGLE_SHEETS_SPREADSHEET_ID` | ID Google Sheets таблицы со студентами |
+
+> Секреты для task-вебхуков (`lesson_task_accepted`) хранятся не в `.env`, а в БД: Admin → Core → Секреты вебхуков курсов.
+
+После изменения `.env` нужно пересобрать:
+```bash
+docker compose up -d --build
+```
+
+---
+
+## Архитектура вебхуков ZenClass
+
+```
+ZenClass автоматизация (per-course)          ZenClass автоматизация (global)
+         │                                              │
+         │ lesson_task_accepted                         │ product_user_subscribed
+         │ lesson_task_submitted_for_review             │ payment_accepted
+         │ access_to_course_expired                     │
+         ▼                                              ▼
+https://kruzhoktrack.ru/webhook/zenclass/   (один и тот же endpoint)
+         │
+         ├── Верификация подписи:
+         │   task-события   → секрет из CourseWebhookSecret (БД, per-course)
+         │   enrollment     → WEBHOOK_SECRET_ENROLLMENT (.env, global)
+         │
+         ├── Идемпотентность → WebhookLog (дубли игнорируются)
+         │
+         └── Обработка → Grade / Enrollment / Student (создаются/обновляются)
+```
+
+---
+
+## Что делать если вебхуки не приходят
+
+1. **Admin → Core → Логи вебхуков** — проверить, есть ли вообще новые записи
+2. Если записей нет — проблема на стороне ZenClass (автоматизация не настроена или URL неверный)
+3. Если запись есть но оценка не создалась — смотреть логи Django: `docker compose logs web | grep webhook_id`
+4. Если в логах `Invalid signature` — неправильный секрет в Admin → Core → Секреты вебхуков курсов
+5. Если в логах `Секрет не настроен` — для этого курса ещё не добавлен секрет
+
+---
+
+## Что делать если сайт не открывается
+
+```bash
+# Зайти на сервер и проверить статус
+ssh -i ~/.ssh/id_ed25519_seva root@45.10.245.122
+cd /opt/kruzhok/backend
+docker compose ps          # все ли контейнеры Running?
+docker compose logs web    # ошибки Django?
+docker compose logs nginx  # ошибки nginx?
+```
+
+Типичные проблемы:
+- **web exited** → `docker compose up -d web` + смотреть логи
+- **SSL expired** → certbot должен обновлять сам каждые 12ч, проверить: `docker compose logs certbot`
+- **502 Bad Gateway** → Django упал, смотреть `docker compose logs web`
