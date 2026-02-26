@@ -96,6 +96,13 @@ class DeadlineAdmin(admin.ModelAdmin):
     search_fields = ['title']
 
 
+@admin.register(CourseWebhookSecret)
+class CourseWebhookSecretAdmin(admin.ModelAdmin):
+    list_display = ['course', 'secret_key', 'updated_at']
+    search_fields = ['course__name']
+    autocomplete_fields = ['course']
+
+
 @admin.register(WebhookLog)
 class WebhookLogAdmin(admin.ModelAdmin):
     list_display = ['webhook_id', 'event_name', 'processed_at']
