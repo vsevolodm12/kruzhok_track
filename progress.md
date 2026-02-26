@@ -123,23 +123,49 @@ GOOGLE_SHEETS_SPREADSHEET_ID=12khQ9s3xUNH4iE7NQl3B-qGTmce9ghvwE7sSPYqkink
 
 ---
 
-## Состояние сервера (2026-02-25)
+## Состояние сервера (2026-02-26)
 
 - **URL:** `https://kruzhoktrack.ru`
 - **VPS:** `root@45.10.245.122`
 - **Проект на сервере:** `/opt/kruzhok/backend/`
-- **Команды управления:**
-  ```bash
-  cd /opt/kruzhok/backend
-  docker compose up -d --build   # пересборка
-  docker compose logs web        # логи Django
-  docker compose down            # остановка
-  ```
-- **Импорт студентов из Google Sheets:**
-  ```bash
-  docker exec backend-web-1 python manage.py import_courses --dry-run
-  docker exec backend-web-1 python manage.py import_courses
-  ```
+
+### Вход на сервер (с ноутбука Севы)
+
+```bash
+ssh -i ~/.ssh/id_ed25519_seva root@45.10.245.122
+```
+
+> SSH-ключ: `~/.ssh/id_ed25519_seva` (файл `id_ed25519_seva` в папке `.ssh`)
+
+### Команды управления (выполнять на сервере)
+
+```bash
+cd /opt/kruzhok/backend
+
+docker compose up -d --build   # пересборка и перезапуск
+docker compose logs web        # логи Django (последние записи)
+docker compose logs web -f     # логи в реальном времени
+docker compose down            # остановка всех контейнеров
+docker compose ps              # статус контейнеров
+```
+
+### Деплой новой версии (с ноутбука)
+
+```bash
+# 1. На ноутбуке: закоммитить и запушить изменения
+git add -p && git commit -m "..." && git push origin main
+
+# 2. На сервере: обновить и пересобрать
+ssh -i ~/.ssh/id_ed25519_seva root@45.10.245.122 \
+  "cd /opt/kruzhok/backend && git pull origin main && docker compose up -d --build"
+```
+
+### Импорт студентов из Google Sheets
+
+```bash
+docker exec backend-web-1 python manage.py import_courses --dry-run
+docker exec backend-web-1 python manage.py import_courses
+```
 
 ---
 
@@ -148,7 +174,7 @@ GOOGLE_SHEETS_SPREADSHEET_ID=12khQ9s3xUNH4iE7NQl3B-qGTmce9ghvwE7sSPYqkink
 - [x] Вебхук `lesson_task_accepted` настроен и работает (49 событий получено)
 - [x] Вебхук `product_user_subscribed` добавлен в автоматизацию
 - [ ] Проверить что `product_user_subscribed` реально приходит (ждём новую покупку)
-- [ ] Для каждого активного курса добавить секрет в Django Admin → Core → CourseWebhookSecret
+- [ ] Для каждого активного курса добавить секрет в Admin → Core → Секреты вебхуков курсов
 
 ---
 
@@ -206,10 +232,18 @@ docker-compose up -d certbot   # автообновление сертифика
 
 ---
 
-#### ⚠️ Секреты вебхуков ZenClass
-Для каждого активного курса нужно добавить секрет в Admin:
-`/admin/` → **Core → Courses → [курс] → Webhook Secret**
-Секрет берётся из настроек автоматизации ZenClass.
+#### ⚠️ Секреты вебхуков ZenClass (per-course)
+
+**Архитектура секретов:**
+- **Зачисление** (`product_user_subscribed`, `payment_accepted`) — один глобальный секрет `WEBHOOK_SECRET_ENROLLMENT` в `.env`. Одна автоматизация в ZenClass на все курсы.
+- **Оценки** (`lesson_task_accepted`, `lesson_task_submitted_for_review`) — отдельный секрет для каждого курса в БД. ZenClass ограничивает количество HTTP-уведомлений в одном окне, поэтому каждый курс — своя автоматизация.
+
+**Добавить секрет для курса:**
+`/admin/` → **Core → Секреты вебхуков курсов → Добавить**
+- Выбрать курс
+- Вставить секретный ключ из ZenClass (Автоматизации → HTTP-уведомление → поле «Секретный ключ»)
+
+Если секрет не настроен — вебхук будет отклонён с ошибкой 403 и предупреждением в логах.
 
 ---
 
@@ -219,6 +253,6 @@ docker-compose up -d certbot   # автообновление сертифика
 - [ ] Проверить авторизацию через Telegram Mini App
 - [ ] Заполнить расписание занятий для активных курсов (через Admin)
 - [ ] Заполнить дедлайны для активных курсов (через Admin)
-- [ ] Добавить секреты вебхуков для активных курсов (через Admin)
+- [ ] Добавить per-course секреты для активных курсов (Admin → Core → Секреты вебхуков курсов)
 - [ ] Настроить BotFather: Web App URL → `https://kruzhoktrack.ru`
 - [ ] Переподключить интеграцию Google Sheets в ZenClass чтобы новые курсы попали в таблицу
