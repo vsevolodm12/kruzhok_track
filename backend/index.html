@@ -628,8 +628,8 @@
     };
 
     // ─── Deadlines Page ───────────────────────────────────────────────────────
-    const DeadlinesPage = ({ deadlines, courses, onBack }) => {
-      const defaultCourse = courses.find(c => deadlines.some(d => d.courseId === c.id)) || courses[0];
+    const DeadlinesPage = ({ deadlines, courses, initialCourse, onBack }) => {
+      const defaultCourse = initialCourse || courses.find(c => deadlines.some(d => d.courseId === c.id)) || courses[0];
       const [activeCourse, setActiveCourse] = useState(defaultCourse);
       const today = new Date(); today.setHours(0,0,0,0);
 
@@ -1031,7 +1031,7 @@
                 {page === Page.SCHEDULE ? (
                   <MobileSchedulePage scheduleMap={appData.scheduleMap} courses={appData.courses} initialCourse={course} onBack={() => setPage(Page.HOME)}/>
                 ) : page === Page.DEADLINES ? (
-                  <DeadlinesPage deadlines={appData.deadlines} courses={appData.courses} onBack={() => setPage(Page.HOME)}/>
+                  <DeadlinesPage deadlines={appData.deadlines} courses={appData.courses} initialCourse={course} onBack={() => setPage(Page.HOME)}/>
                 ) : (
                   <>
                     {/* ── Шапка ────────────────────────────────────── */}
