@@ -285,7 +285,8 @@
                   const isToday = diff === 0;
                   return (
                     <div key={item.id}
-                      className={`grid grid-cols-[44px_1fr] gap-3 py-3 items-center
+                      className={`grid gap-3 py-3 items-center
+                        ${course.zoom_url ? 'grid-cols-[44px_1fr_auto]' : 'grid-cols-[44px_1fr]'}
                         ${idx < upcoming.length-1 ? 'border-b border-[#F2F2F2] dark:border-[#242424]' : ''}
                         ${isToday ? 'rounded-xl -mx-2 px-2 bg-[#EEF2FF] dark:bg-[#1A1A2E]' : ''}`}>
                       <div className="text-center">
@@ -301,9 +302,17 @@
                           {item.topic}
                         </p>
                         <p className={`text-xs mt-0.5 ${isToday ? 'text-accent' : 'text-faint dark:text-[#555]'}`}>
-                          {isToday ? 'Сегодня · ' : ''}занятие
+                          {isToday ? 'Сегодня · ' : ''}18:00
                         </p>
                       </div>
+                      {course.zoom_url && (
+                        <a href={course.zoom_url} target="_blank" rel="noreferrer"
+                          className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold text-white active:opacity-80 transition-opacity shrink-0"
+                          style={{background:'#2D8CFF'}}>
+                          <IcVideo size={10}/>
+                          Zoom
+                        </a>
+                      )}
                     </div>
                   );
                 })}
@@ -571,22 +580,6 @@
             {activeCourse && <p className="text-sm text-muted dark:text-[#888] mt-0.5 truncate">{activeCourse.name}</p>}
           </div>
 
-          {courses.length > 1 && (
-            <div className="px-4 pb-3 overflow-x-auto no-scrollbar shrink-0">
-              <div className="flex gap-2 w-max">
-                {courses.map(c => (
-                  <button key={c.id} onClick={() => { setActiveCourse(c); setMonthKey(''); }}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all max-w-[200px] truncate
-                      ${c.id === activeCourse?.id
-                        ? 'bg-ink text-white dark:bg-[#F0F0F0] dark:text-ink'
-                        : 'bg-white dark:bg-[#1C1C1C] text-muted dark:text-[#888]'}`}>
-                    {c.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           <div className="px-4 pb-3 overflow-x-auto no-scrollbar shrink-0">
             <div className="flex gap-2 w-max">
               {byMonth.map(g => (
@@ -613,7 +606,8 @@
                   const isToday = status === 'today';
                   return (
                     <div key={item.id}
-                      className={`grid grid-cols-[52px_1fr] gap-3 px-4 py-3.5 items-center
+                      className={`grid gap-3 px-4 py-3.5 items-center
+                        ${activeCourse?.zoom_url ? 'grid-cols-[52px_1fr_auto]' : 'grid-cols-[52px_1fr]'}
                         ${idx < arr.length-1 ? 'border-b border-[#F5F5F5] dark:border-[#242424]' : ''}
                         ${isToday ? 'bg-[#F5F5F5] dark:bg-[#252525]' : ''}`}>
                       <div className="text-center">
@@ -629,9 +623,17 @@
                           {isToday ? '· ' : ''}{item.topic}
                         </p>
                         <p className={`text-xs mt-0.5 ${isPast ? 'text-[#D0D0D0] dark:text-[#3A3A3A]' : 'text-faint dark:text-[#555]'}`}>
-                          {isPast ? 'прошедшее · ' : isToday ? 'сегодня · ' : ''}занятие
+                          {isPast ? 'прошедшее · ' : isToday ? 'сегодня · ' : ''}18:00
                         </p>
                       </div>
+                      {activeCourse?.zoom_url && (
+                        <a href={activeCourse.zoom_url} target="_blank" rel="noreferrer"
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-semibold text-white active:opacity-80 transition-opacity shrink-0"
+                          style={{background:'#2D8CFF'}}>
+                          <IcVideo size={11}/>
+                          Zoom
+                        </a>
+                      )}
                     </div>
                   );
                 })}

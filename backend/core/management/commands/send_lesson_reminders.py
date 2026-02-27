@@ -15,12 +15,12 @@ from core.services.telegram import TelegramNotificationService
 
 logger = logging.getLogger(__name__)
 
-REMIND_BEFORE_MIN = 5
-REMIND_WINDOW_MIN = 10
+REMIND_BEFORE_MIN = 15
+REMIND_WINDOW_MIN = 5
 
 
 class Command(BaseCommand):
-    help = 'Отправляет Telegram-напоминания о занятиях, начинающихся через ~10 минут'
+    help = 'Отправляет Telegram-напоминания о занятиях, начинающихся через ~15 минут (1 раз)'
 
     def handle(self, *args, **options):
         now = timezone.now()
