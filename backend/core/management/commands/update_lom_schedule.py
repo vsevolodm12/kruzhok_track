@@ -32,14 +32,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         try:
-            course = Course.objects.get(name__icontains='Ломоносов')
-        except Course.MultipleObjectsReturned:
-            self.stdout.write(self.style.ERROR(
-                'Найдено несколько курсов с "Ломоносов". Уточните фильтр.'
-            ))
-            return
+            course = Course.objects.get(pk=99)
         except Course.DoesNotExist:
-            self.stdout.write(self.style.ERROR('Курс Ломоносов не найден.'))
+            self.stdout.write(self.style.ERROR('Курс id=99 не найден.'))
             return
 
         self.stdout.write(f'Курс: {course.name} (id={course.id})')
