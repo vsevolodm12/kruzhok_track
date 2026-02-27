@@ -518,8 +518,8 @@
     };
 
     // ─── Mobile Schedule Page ─────────────────────────────────────────────────
-    const MobileSchedulePage = ({ scheduleMap, courses, onBack }) => {
-      const defaultCourse = courses.find(c => (scheduleMap[c.id] || []).length > 0) || courses[0];
+    const MobileSchedulePage = ({ scheduleMap, courses, initialCourse, onBack }) => {
+      const defaultCourse = initialCourse || courses.find(c => (scheduleMap[c.id] || []).length > 0) || courses[0];
       const [activeCourse, setActiveCourse] = useState(defaultCourse);
       const [monthKey, setMonthKey] = useState('');
 
@@ -1027,7 +1027,7 @@
               <div className="w-full max-w-[390px] min-h-[100dvh] bg-surface dark:bg-[#111111] relative flex flex-col">
 
                 {page === Page.SCHEDULE ? (
-                  <MobileSchedulePage scheduleMap={appData.scheduleMap} courses={appData.courses} onBack={() => setPage(Page.HOME)}/>
+                  <MobileSchedulePage scheduleMap={appData.scheduleMap} courses={appData.courses} initialCourse={course} onBack={() => setPage(Page.HOME)}/>
                 ) : page === Page.DEADLINES ? (
                   <DeadlinesPage deadlines={appData.deadlines} courses={appData.courses} onBack={() => setPage(Page.HOME)}/>
                 ) : (
