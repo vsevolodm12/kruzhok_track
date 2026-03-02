@@ -36,7 +36,7 @@
 |---|---|
 | Сайт | https://kruzhoktrack.ru |
 | Django Admin | https://kruzhoktrack.ru/admin/ — `seva / 1712` |
-| VPS | `ssh -i ~/.ssh/id_ed25519_seva root@45.10.245.122` |
+| VPS | `ssh -i ~/.ssh/id_ed25519_seva_fixed root@45.10.245.122` |
 | Проект на сервере | `/opt/kruzhok/backend/` |
 
 ---
@@ -135,7 +135,7 @@ ZenClass → Настройки автоматизации → Добавить 
 ### Зайти на сервер
 
 ```bash
-ssh -i ~/.ssh/id_ed25519_seva root@45.10.245.122
+ssh -i ~/.ssh/id_ed25519_seva_fixed root@45.10.245.122
 ```
 
 ### Перейти в папку проекта
@@ -158,10 +158,14 @@ docker compose restart web           # перезапуск только Django 
 ### Задеплоить новую версию кода
 
 ```bash
-# С ноутбука одной командой:
-ssh -i ~/.ssh/id_ed25519_seva root@45.10.245.122 \
-  "cd /opt/kruzhok/backend && git pull origin main && docker compose up -d --build"
+# С ноутбука одной командой (build в фоне, ~30сек):
+ssh -i ~/.ssh/id_ed25519_seva_fixed root@45.10.245.122 \
+  "cd /opt/kruzhok/backend && git pull origin main && nohup docker compose up -d --build > /tmp/deploy.log 2>&1 &"
+# Проверить результат через 30сек:
+ssh -i ~/.ssh/id_ed25519_seva_fixed root@45.10.245.122 "tail -5 /tmp/deploy.log && docker compose -f /opt/kruzhok/backend/docker-compose.yml ps"
 ```
+
+> Примечание: ключ `~/.ssh/id_ed25519_seva` не имеет заголовков — используй `~/.ssh/id_ed25519_seva_fixed` (с правильными PEM-заголовками).
 
 ### Импорт студентов из Google Sheets
 
@@ -242,7 +246,7 @@ https://kruzhoktrack.ru/webhook/zenclass/   (один и тот же endpoint)
 
 ```bash
 # Зайти на сервер и проверить статус
-ssh -i ~/.ssh/id_ed25519_seva root@45.10.245.122
+ssh -i ~/.ssh/id_ed25519_seva_fixed root@45.10.245.122
 cd /opt/kruzhok/backend
 docker compose ps          # все ли контейнеры Running?
 docker compose logs web    # ошибки Django?
