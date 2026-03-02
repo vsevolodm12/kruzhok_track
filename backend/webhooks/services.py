@@ -1,5 +1,6 @@
 import hashlib
 import logging
+import re
 from datetime import datetime, timezone as dt_timezone
 from django.db import IntegrityError
 from core.models import Student, Course, Enrollment, Task, Grade, WebhookLog
@@ -210,7 +211,15 @@ def process_task_accepted(payload: dict, timestamp: int) -> Grade | None:
         except (ValueError, IndexError):
             pass
     elif comment:
-        score = Grade.parse_score_from_comment(comment)
+        # Куратор пишет "44/54" — парсим оба числа и обновляем max_score задания
+        match = re.search(r'(\d+)\s*/\s*(\d+)', comment)
+        if match:
+            score = int(match.group(1))
+            max_score = int(match.group(2))
+            task.max_score = max_score
+            task.save(update_fields=['max_score'])
+        else:
+            score = Grade.parse_score_from_comment(comment)
 
     # Создаём или обновляем оценку
     checked_at = datetime.fromtimestamp(timestamp, tz=dt_timezone.utc)
