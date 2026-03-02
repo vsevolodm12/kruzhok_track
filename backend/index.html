@@ -606,12 +606,12 @@
                       className={`grid gap-3 px-4 py-3.5 items-center
                         ${activeCourse?.zoom_url ? 'grid-cols-[52px_1fr_auto]' : 'grid-cols-[52px_1fr]'}
                         ${idx < arr.length-1 ? 'border-b border-[#F5F5F5] dark:border-[#242424]' : ''}
-                        ${isToday ? 'bg-[#F5F5F5] dark:bg-[#252525]' : ''}`}>
+                        ${isToday ? 'bg-[#EEF2FF] dark:bg-[#1A1A2E]' : ''}`}>
                       <div className="text-center">
-                        <p className={`text-xl font-semibold leading-none ${isPast ? 'text-faint dark:text-[#444]' : 'text-ink dark:text-[#DEDEDE]'}`}>
+                        <p className={`text-xl font-semibold leading-none ${isPast ? 'text-faint dark:text-[#444]' : isToday ? 'text-accent' : 'text-ink dark:text-[#DEDEDE]'}`}>
                           {start.getDate()}
                         </p>
-                        <p className={`text-[10px] font-medium uppercase tracking-wide mt-0.5 ${isPast ? 'text-[#D0D0D0] dark:text-[#3A3A3A]' : 'text-[#8E8E93] dark:text-[#636366]'}`}>
+                        <p className={`text-[10px] font-medium uppercase tracking-wide mt-0.5 ${isPast ? 'text-[#D0D0D0] dark:text-[#3A3A3A]' : isToday ? 'text-accent' : 'text-[#8E8E93] dark:text-[#636366]'}`}>
                           {fmt.monthShort(item.startsAt)}
                         </p>
                       </div>
@@ -619,7 +619,7 @@
                         <p className={`text-sm font-semibold leading-snug ${isPast ? 'text-faint dark:text-[#444]' : 'text-ink dark:text-[#DEDEDE]'}`}>
                           {item.topic}
                         </p>
-                        <p className={`text-xs mt-0.5 ${isPast ? 'text-[#D0D0D0] dark:text-[#3A3A3A]' : 'text-faint dark:text-[#555]'}`}>
+                        <p className={`text-xs mt-0.5 ${isPast ? 'text-[#D0D0D0] dark:text-[#3A3A3A]' : isToday ? 'text-accent' : 'text-faint dark:text-[#555]'}`}>
                           {isPast ? 'прошедшее · ' : isToday ? 'сегодня · ' : ''}18:00
                         </p>
                       </div>
@@ -792,9 +792,11 @@
         if (!trimmed) return;
         setLoading(true);
         try {
+          const body = { email: trimmed };
+          if (window.Telegram?.WebApp?.initData) body.init_data = window.Telegram.WebApp.initData;
           const res = await api('/auth/email/', {
             method: 'POST',
-            body: JSON.stringify({ email: trimmed }),
+            body: JSON.stringify(body),
           });
           const data = await res.json();
           if (data.status === 'authorized') {

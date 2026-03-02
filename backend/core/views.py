@@ -104,6 +104,7 @@ def email_auth(request):
     try:
         data = json.loads(request.body)
         email = data.get('email', '').lower().strip()
+        init_data = data.get('init_data', '')
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
@@ -118,8 +119,13 @@ def email_auth(request):
             'message': 'Студент с таким email не найден'
         }, status=404)
 
-    # Если есть данные Telegram в сессии — привязываем
+    # Данные Telegram: сначала из сессии, иначе из init_data в теле запроса
     telegram_data = request.session.get('telegram_data')
+    if not telegram_data and init_data:
+        from .services.telegram import TelegramAuthService
+        validated = TelegramAuthService.validate_init_data(init_data)
+        if validated:
+            telegram_data = TelegramAuthService.extract_user_data(validated)
     if telegram_data:
         telegram_id = telegram_data['telegram_id']
         if not Student.objects.filter(telegram_id=telegram_id).exclude(id=student.id).exists():
