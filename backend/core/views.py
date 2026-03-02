@@ -604,6 +604,46 @@ def api_deadlines(request):
 
 @csrf_exempt
 @require_POST
+def link_telegram(request):
+    """Тихо привязывает telegram_id к текущей сессии по initData."""
+    student = _get_current_student(request)
+    if not student:
+        return JsonResponse({'error': 'Not authorized'}, status=401)
+
+    if student.telegram_id:
+        return JsonResponse({'status': 'already_linked'})
+
+    try:
+        data = json.loads(request.body)
+        init_data = data.get('init_data', '')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    if not init_data:
+        return JsonResponse({'error': 'init_data required'}, status=400)
+
+    from .services.telegram import TelegramAuthService
+    validated = TelegramAuthService.validate_init_data(init_data)
+    if not validated:
+        return JsonResponse({'error': 'Invalid init_data'}, status=400)
+
+    user_data = TelegramAuthService.extract_user_data(validated)
+    if not user_data:
+        return JsonResponse({'error': 'No user data'}, status=400)
+
+    telegram_id = user_data['telegram_id']
+    if Student.objects.filter(telegram_id=telegram_id).exclude(id=student.id).exists():
+        return JsonResponse({'error': 'Telegram already linked to another account'}, status=409)
+
+    student.telegram_id = telegram_id
+    student.save(update_fields=['telegram_id'])
+    logger.info(f"Telegram linked: {student.email} → tg_id={telegram_id}")
+
+    return JsonResponse({'status': 'linked'})
+
+
+@csrf_exempt
+@require_POST
 def update_name(request):
     """Обновление имени студента."""
     student = _get_current_student(request)

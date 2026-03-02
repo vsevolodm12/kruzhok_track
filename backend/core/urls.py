@@ -30,6 +30,7 @@ urlpatterns = [
     path('api/deadlines/', views.api_deadlines, name='api_deadlines'),
     path('api/stats/', views.api_stats, name='api_stats'),
     path('api/update-name/', views.update_name, name='update_name'),
+    path('api/link-telegram/', views.link_telegram, name='link_telegram'),
 
     # Telegram Bot webhook
     path('bot/webhook/', views.bot_webhook, name='bot_webhook'),

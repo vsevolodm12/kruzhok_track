@@ -1005,7 +1005,17 @@
         // 2. Проверяем существующую сессию
         try {
           const meRes = await api('/api/me/');
-          if (meRes.ok) { await loadData(); return; }
+          if (meRes.ok) {
+            // Тихо привязываем telegram_id если открыто в Mini App
+            if (window.Telegram?.WebApp?.initData) {
+              api('/api/link-telegram/', {
+                method: 'POST',
+                body: JSON.stringify({ init_data: window.Telegram.WebApp.initData }),
+              }).catch(() => {});
+            }
+            await loadData();
+            return;
+          }
         } catch {}
 
         // 3. Нужна авторизация по email
