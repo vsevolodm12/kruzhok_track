@@ -586,18 +586,42 @@ def api_deadlines(request):
 
     course_ids = list(Enrollment.objects.filter(student=student).values_list('course_id', flat=True))
 
+    # Задания в ZenClass называются "ДЗ до 2 марта 23:59" — дата зашита в название.
+    # Если у студента есть ACCEPTED грейд за задание с этой датой — дедлайн считается сданным.
+    MONTH_NAMES = {
+        1: 'января', 2: 'февраля', 3: 'марта', 4: 'апреля',
+        5: 'мая', 6: 'июня', 7: 'июля', 8: 'августа',
+        9: 'сентября', 10: 'октября', 11: 'ноября', 12: 'декабря',
+    }
+
+    # Множество (course_id, task_name) для принятых заданий студента
+    accepted_task_names = set(
+        Grade.objects.filter(
+            student=student,
+            status=Grade.Status.ACCEPTED,
+            task__course_id__in=course_ids,
+        ).values_list('task__course_id', 'task__name')
+    )
+
     deadlines = Deadline.objects.filter(
         course_id__in=course_ids
     ).order_by('due_date')
 
     deadlines_data = []
     for deadline in deadlines:
+        submitted = deadline.submitted
+        if not submitted:
+            date_str = f"{deadline.due_date.day} {MONTH_NAMES.get(deadline.due_date.month, '')}"
+            submitted = any(
+                cid == deadline.course_id and date_str in (name or '')
+                for cid, name in accepted_task_names
+            )
         deadlines_data.append({
             'id': deadline.id,
             'course_id': deadline.course_id,
             'title': deadline.title,
             'due_date': deadline.due_date.isoformat(),
-            'submitted': deadline.submitted,
+            'submitted': submitted,
         })
 
     return JsonResponse({'deadlines': deadlines_data})
