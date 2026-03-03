@@ -223,17 +223,18 @@ def dashboard(request):
     # Расписание курса (ближайшие 4)
     schedule = ScheduleEvent.objects.filter(
         course=current_course,
-        scheduled_at__gte=timezone.now()
+        scheduled_at__date__gte=timezone.now().date()
     ).order_by('scheduled_at')[:4]
 
     next_event = schedule.first() if schedule.exists() else None
 
     # Дедлайны (ближайшие 7 дней)
-    week_limit = timezone.now() + timedelta(days=7)
+    today = timezone.now().date()
+    week_limit = today + timedelta(days=7)
     deadlines = Deadline.objects.filter(
         course=current_course,
-        due_date__gte=timezone.now(),
-        due_date__lte=week_limit
+        due_date__date__gte=today,
+        due_date__date__lte=week_limit
     ).order_by('due_date')
 
     context = {
