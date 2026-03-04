@@ -69,7 +69,7 @@ class Student(models.Model):
             count = 0
             for grade in grades_with_score:
                 if grade.task.max_score > 0:
-                    total_percent += (grade.value / grade.task.max_score) * 100
+                    total_percent += min((grade.value / grade.task.max_score) * 100, 100)
                     count += 1
             avg = round(total_percent / count) if count > 0 else 0
         else:
@@ -216,7 +216,7 @@ class Grade(models.Model):
         """Возвращает процент выполнения."""
         if self.value is None or self.task.max_score == 0:
             return None
-        return round((self.value / self.task.max_score) * 100)
+        return min(round((self.value / self.task.max_score) * 100), 100)
 
     @staticmethod
     def parse_score_from_comment(comment: str) -> int | None:

@@ -214,7 +214,7 @@ def dashboard(request):
         count = 0
         for g in grades_with_score:
             if g.task.max_score > 0:
-                total_percent += (g.value / g.task.max_score) * 100
+                total_percent += min((g.value / g.task.max_score) * 100, 100)
                 count += 1
         average_percent = round(total_percent / count) if count > 0 else 0
     else:
